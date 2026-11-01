@@ -3,11 +3,14 @@ import sys
 import threading
 import pygame
 
+# Pastikan direktori proyek (lokasi main.py) ada di sys.path agar paket
+# `src` tetap dapat diimpor saat aplikasi dijalankan langsung.
 if __package__ in (None, ""):
-    sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from src.gui import select_midi_config
 from src.midi_handler import active_notes, midi_listener, midi_player, notes_lock, request_stop
+
 
 def main():
     pygame.init()
@@ -27,8 +30,8 @@ def main():
     # 3. Thread Player
     if chosen_output and midi_file:
         out_thread = threading.Thread(
-            target=midi_player, 
-            args=(midi_file, chosen_output, chosen_vol, chosen_velo, width, height), 
+            target=midi_player,
+            args=(midi_file, chosen_output, chosen_vol, chosen_velo, width, height),
             daemon=True
         )
         out_thread.start()
@@ -43,6 +46,7 @@ def main():
                 running = False
 
         screen.fill(bg_color)
+
         with notes_lock:
             for pitch, note in list(active_notes.items()):
                 note.update()
@@ -54,6 +58,7 @@ def main():
         clock.tick(60)
 
     pygame.quit()
+
 
 if __name__ == "__main__":
     main()

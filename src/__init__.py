@@ -1,3 +1,1 @@
-"""
-Paket Visualizer Not Piano MIDI.
-"""
+""" Paket Visualizer Not Piano MIDI. """

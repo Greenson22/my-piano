@@ -12,7 +12,6 @@ class VisualNote:
     def __init__(self, pitch: int, velocity: int, width: int, height: int):
         self.pitch = pitch
         self.velocity = velocity
-
         octave = (pitch // 12) - 1
         self.name = f"{NOTE_NAMES[pitch % 12]}{octave}"
 
@@ -32,7 +31,6 @@ class VisualNote:
         max_font_size = 36
         velo_normalized = max(1, min(velocity, 127)) / 127.0
         self.font_size = int(min_font_size + velo_normalized * (max_font_size - min_font_size))
-
         self.font = pygame.font.SysFont("Arial", self.font_size, bold=True)
 
         # Status animasi
@@ -57,7 +55,6 @@ class VisualNote:
         """Gambar teks not beserta outline hitam ke surface Pygame."""
         outline_surface = self.font.render(self.name, True, (0, 0, 0))
         text_surface = self.font.render(self.name, True, self.color)
-
         w, h = text_surface.get_size()
         combined_surface = pygame.Surface((w + 4, h + 4), pygame.SRCALPHA)
 
@@ -67,6 +64,5 @@ class VisualNote:
 
         combined_surface.blit(text_surface, (2, 2))
         combined_surface.set_alpha(self.alpha)
-
         rect = combined_surface.get_rect(center=(self.x, self.y))
         surface.blit(combined_surface, rect)

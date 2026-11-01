@@ -4,11 +4,13 @@ import pygame
 
 MIDI_DIR = "./midi"
 
+
 def get_midi_files() -> list[str]:
     if not os.path.exists(MIDI_DIR):
         os.makedirs(MIDI_DIR)
     files = [f for f in os.listdir(MIDI_DIR) if f.lower().endswith(('.mid', '.midi'))]
     return sorted(files)
+
 
 def select_midi_config(screen: pygame.Surface, clock: pygame.time.Clock, width: int, height: int):
     font_title = pygame.font.SysFont("Arial", 24, bold=True)
@@ -23,13 +25,12 @@ def select_midi_config(screen: pygame.Surface, clock: pygame.time.Clock, width: 
     selected_output = output_ports[0] if output_ports else None
     # Default: tanpa file MIDI, sehingga bisa langsung main manual
     selected_file = None
-    
-    volume = 100 
-    
+
+    volume = 100
+
     # State untuk Input Teks Velocity
     velocity_text = "1.0"
     typing_velocity = False
-
     drag_vol = False
     config_done = False
 
@@ -87,17 +88,14 @@ def select_midi_config(screen: pygame.Surface, clock: pygame.time.Clock, width: 
         border_col = (0, 255, 200) if typing_velocity else (100, 100, 120)
         pygame.draw.rect(screen, box_bg, velo_box, border_radius=6)
         pygame.draw.rect(screen, border_col, velo_box, width=2, border_radius=6)
-
         velo_surf = font_item.render(velocity_text, True, (255, 255, 255))
         screen.blit(velo_surf, (velo_box.x + 10, velo_box.y + 6))
 
         # --- 4. File MIDI ---
         screen.blit(font_sub.render("5. Pilih File MIDI (Folder ./midi/):", True, (0, 255, 200)), (40, 240))
         file_buttons = []
-
         # Opsi pertama (None) = main manual tanpa memutar file MIDI
         all_options = [None] + midi_files[:5]
-
         for i, filename in enumerate(all_options):
             col = i % 2
             row = i // 2
@@ -107,7 +105,6 @@ def select_midi_config(screen: pygame.Surface, clock: pygame.time.Clock, width: 
             pygame.draw.rect(screen, color, btn_rect, border_radius=6)
             pygame.draw.rect(screen, (0, 255, 200) if is_sel else (100, 100, 120), btn_rect, width=2, border_radius=6)
 
-            # Teks khusus jika pilihan adalah None (Main Sendiri)
             if filename is None:
                 label = "- Tanpa File MIDI (Main Sendiri) -"
             else:
@@ -132,43 +129,36 @@ def select_midi_config(screen: pygame.Surface, clock: pygame.time.Clock, width: 
             if event.type == pygame.QUIT:
                 pygame.quit()
                 exit()
-
             elif event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
-                # Klik Kotak Input Velocity
                 typing_velocity = velo_box.collidepoint(event.pos)
-
                 if track_vol.collidepoint(event.pos):
                     drag_vol = True
-
                 for btn_rect, port in in_buttons:
-                    if btn_rect.collidepoint(event.pos): selected_input = port
+                    if btn_rect.collidepoint(event.pos):
+                        selected_input = port
                 for btn_rect, port in out_buttons:
-                    if btn_rect.collidepoint(event.pos): selected_output = port
+                    if btn_rect.collidepoint(event.pos):
+                        selected_output = port
                 for btn_rect, filename in file_buttons:
-                    if btn_rect.collidepoint(event.pos): selected_file = filename
-
+                    if btn_rect.collidepoint(event.pos):
+                        selected_file = filename
                 if refresh_rect.collidepoint(event.pos):
                     input_ports = mido.get_input_names()
                     output_ports = mido.get_output_names()
                     midi_files = get_midi_files()
-
                 if start_rect.collidepoint(event.pos):
                     config_done = True
-
             elif event.type == pygame.MOUSEBUTTONUP and event.button == 1:
                 drag_vol = False
-
             elif event.type == pygame.MOUSEMOTION and drag_vol:
                 rel_x = max(0, min(event.pos[0] - 40, 400))
                 volume = int((rel_x / 400) * 127)
-
             elif event.type == pygame.KEYDOWN and typing_velocity:
                 if event.key == pygame.K_RETURN:
                     typing_velocity = False
                 elif event.key == pygame.K_BACKSPACE:
                     velocity_text = velocity_text[:-1]
                 else:
-                    # Hanya mengizinkan input angka dan titik desimal
                     if event.unicode.isdigit() or event.unicode == '.':
                         if len(velocity_text) < 5:
                             velocity_text += event.unicode
@@ -176,7 +166,6 @@ def select_midi_config(screen: pygame.Surface, clock: pygame.time.Clock, width: 
         pygame.display.flip()
         clock.tick(60)
 
-    # Konversi string input velocity ke tipe float (fallback ke 1.0 jika input kosong/invalid)
     try:
         velocity_mult = float(velocity_text)
     except ValueError:

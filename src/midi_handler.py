@@ -8,9 +8,11 @@ active_notes = {}
 notes_lock = threading.Lock()
 stop_thread = False
 
+
 def request_stop():
     global stop_thread
     stop_thread = True
+
 
 def midi_listener(port_name: str, width: int, height: int):
     global stop_thread
@@ -31,15 +33,14 @@ def midi_listener(port_name: str, width: int, height: int):
     except Exception as e:
         print(f"Error MIDI Input: {e}")
 
+
 def midi_player(midi_file_path: str, output_port_name: str, volume: int, velocity_mult: float, width: int, height: int):
     global stop_thread
     if not midi_file_path or not os.path.isfile(midi_file_path) or not output_port_name:
         return
-
     try:
         mid = mido.MidiFile(midi_file_path)
         vol_factor = volume / 127.0
-
         with mido.open_output(output_port_name) as outport:
             # Set Master Volume (CC 7)
             for channel in range(16):
@@ -49,14 +50,9 @@ def midi_player(midi_file_path: str, output_port_name: str, volume: int, velocit
             for msg in mid.play():
                 if stop_thread:
                     break
-
                 adjusted_msg = msg.copy()
-
                 if adjusted_msg.type == 'note_on' and adjusted_msg.velocity > 0:
-                    # Kalikan velocity asli lagu dengan multiplier sensitivitas
                     scaled_velo = int(adjusted_msg.velocity * velocity_mult)
-                    
-                    # Gabungkan dengan master volume
                     final_velocity = int(scaled_velo * vol_factor)
                     adjusted_msg.velocity = max(1, min(final_velocity, 127))
 
