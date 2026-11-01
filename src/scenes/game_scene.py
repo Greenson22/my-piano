@@ -76,6 +76,14 @@ class GameScene:
         self.speed = 1.0           # 0.5 sampai 1.2
         self.pixels_per_sec = 140.0
 
+        # Fitur Pembelajaran Chunking (Looping Bagian Tertentu A-B)
+        self.chunk_enabled = False
+        self.chunk_start = 0.0
+        self.chunk_end = min(8.0, self.total_duration)
+        self.chunk_repeat_count = 0
+        self.chunk_target_repeats = 5  # Target latihan pengulangan
+        self.setting_chunk_point = None # None, 'start', atau 'end' saat user klik
+
         # Waktu & Progress
         self.current_time = 0.0
         self.is_paused = False
@@ -161,6 +169,27 @@ class GameScene:
                         return "main_menu"
                     elif event.key == pygame.K_SPACE:
                         self.is_paused = not self.is_paused
+                    elif event.key == pygame.K_c:
+                        # Toggle Chunking Mode On/Off
+                        self.chunk_enabled = not self.chunk_enabled
+                        if self.chunk_enabled:
+                            # Jika diaktifkan, pastikan posisi berada di dalam rentang chunk
+                            if self.current_time < self.chunk_start or self.current_time > self.chunk_end:
+                                self.seek_to_time(self.chunk_start)
+                    elif event.key == pygame.K_a:
+                        # Set Titik Mulai Chunking (Point A) ke posisi saat ini
+                        self.chunk_start = max(0.0, self.current_time)
+                        if self.chunk_end <= self.chunk_start:
+                            self.chunk_end = min(self.total_duration, self.chunk_start + 4.0)
+                        self.chunk_enabled = True
+                    elif event.key == pygame.K_b:
+                        # Set Titik Akhir Chunking (Point B) ke posisi saat ini
+                        self.chunk_end = min(self.total_duration, max(self.chunk_start + 1.0, self.current_time))
+                        self.chunk_enabled = True
+                    elif event.key == pygame.K_r:
+                        # Reset pengulangan ke awal chunk
+                        self.seek_to_time(self.chunk_start if self.chunk_enabled else 0.0)
+                        self.chunk_repeat_count = 0
                     elif event.key == pygame.K_LEFT:
                         # Geser mundur 3 detik
                         self.seek_to_time(self.current_time - 3.0)
@@ -216,6 +245,15 @@ class GameScene:
                 if not must_wait:
                     self.current_time += dt * self.speed
 
+                # Logika Loop Chunking: Jika mencapai titik akhir chunk_end, ulangi otomatis ke chunk_start
+                if self.chunk_enabled and self.current_time >= self.chunk_end:
+                    self.chunk_repeat_count += 1
+                    self.seek_to_time(self.chunk_start)
+                    self.mascot.expression = "excited"
+                    # Beri teks notifikasi loop chunking
+                    self.accuracy_text = f"CHUNK LOOP #{self.chunk_repeat_count}"
+                    self.accuracy_timer = 1.0
+
             # Update Maskot & HUD Timer
             self.mascot.update(dt)
             if self.accuracy_timer > 0:
@@ -232,6 +270,19 @@ class GameScene:
             progress = max(0.0, min(1.0, self.current_time / self.total_duration))
             # Background track
             pygame.draw.rect(self.screen, (30, 34, 50), self.timeline_rect, border_radius=5)
+
+            # Jika Chunking aktif, gambar highlight area A-B di timeline
+            if self.chunk_enabled:
+                cA_ratio = max(0.0, min(1.0, self.chunk_start / self.total_duration))
+                cB_ratio = max(0.0, min(1.0, self.chunk_end / self.total_duration))
+                chunk_x = self.timeline_rect.x + (cA_ratio * self.timeline_rect.width)
+                chunk_w = max(4.0, (cB_ratio - cA_ratio) * self.timeline_rect.width)
+                chunk_rect = pygame.Rect(int(chunk_x), self.timeline_rect.y - 2, int(chunk_w), self.timeline_rect.height + 4)
+                pygame.draw.rect(self.screen, (255, 193, 7), chunk_rect, border_radius=4)
+                # Pin penanda [A] dan [B]
+                pygame.draw.line(self.screen, (255, 235, 59), (int(chunk_x), self.timeline_rect.y - 6), (int(chunk_x), self.timeline_rect.bottom + 6), 2)
+                pygame.draw.line(self.screen, (255, 235, 59), (int(chunk_x + chunk_w), self.timeline_rect.y - 6), (int(chunk_x + chunk_w), self.timeline_rect.bottom + 6), 2)
+
             # Progress bar terisi
             filled_w = int(self.timeline_rect.width * progress)
             if filled_w > 0:
@@ -243,11 +294,12 @@ class GameScene:
             pygame.draw.circle(self.screen, (255, 255, 255), (handle_x, handle_y), 7)
             pygame.draw.circle(self.screen, COLOR_ACCENT_BLUE, (handle_x, handle_y), 4)
 
-            # Format teks menit:detik
+            # Format teks menit:detik & info chunking
             cur_m, cur_s = divmod(int(self.current_time), 60)
             tot_m, tot_s = divmod(int(self.total_duration), 60)
-            time_str = f"{cur_m:02d}:{cur_s:02d} / {tot_m:02d}:{tot_s:02d} (Geser Timeline / [←][→])"
-            txt_t = self.font_time.render(time_str, True, COLOR_TEXT_MUTED)
+            chunk_status_txt = f" | CHUNK [C]: {'ON' if self.chunk_enabled else 'OFF'} (Loop #{self.chunk_repeat_count}) [A]/[B]"
+            time_str = f"{cur_m:02d}:{cur_s:02d} / {tot_m:02d}:{tot_s:02d}{chunk_status_txt}"
+            txt_t = self.font_time.render(time_str, True, (255, 215, 0) if self.chunk_enabled else COLOR_TEXT_MUTED)
             self.screen.blit(txt_t, (self.timeline_rect.right - txt_t.get_width(), self.timeline_rect.y - 18))
 
             # 2. Gambar Balok-Balok Nada yang Jatuh (dibatasi di bawah HUD)
