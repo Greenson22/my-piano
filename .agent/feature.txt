@@ -1,0 +1,55 @@
+================================================================================
+                    DAFTAR FITUR & STATUS PROYEK PIANO
+================================================================================
+
+[STATUS LABEL]
+[V] SELESAI / IMPLEMENTED
+[P] DALAM PROSES (IN PROGRESS)
+[R] DIRENCANAKAN (PLANNED)
+
+--------------------------------------------------------------------------------
+1. CORE MIDI & EXISTING SYSTEM
+--------------------------------------------------------------------------------
+[V] MIDI Device Selection GUI: Memilih port input MIDI dan output MIDI.
+[V] Realtime MIDI Listener: Menangkap pesan MIDI dari keyboard/piano fisik eksternal.
+[V] MIDI File Player: Memutar file MIDI (.mid) ke port output MIDI pada thread terpisah.
+[V] Basic Note Visualizer: Menampilkan nama not, velocity, gradasi warna HSV, dan efek pudar/jatuh saat tuts ditekan/dilepas.
+
+--------------------------------------------------------------------------------
+2. MENU UTAMA & NAVIGASI (SCENE MANAGEMENT)
+--------------------------------------------------------------------------------
+[V] Main Menu Interaktif: Halaman pembuka aplikasi modern untuk navigasi ke berbagai mode (Game, Visualizer, Settings).
+[V] Free Play / Visualizer Scene: Mode visualizer asli dikemas rapi ke dalam scene mandiri tanpa merusak fungsionalitasnya.
+[V] Settings Scene: Halaman terpadu untuk pengaturan perangkat MIDI, kontrol tombol keyboard laptop, dan ganti preset suara piano.
+
+--------------------------------------------------------------------------------
+3. AUDIO INTERNAL LAPTOP (SOUND SYNTHESIZER)
+--------------------------------------------------------------------------------
+[V] Laptop Audio Synth Engine: Menghasilkan suara piano langsung dari speaker laptop/PC menggunakan real-time multi-harmonic synthesis.
+[V] Sound Presets Selection: Pilihan karakter suara piano (Concert Grand Piano, Bright Upright Piano, Mellow Piano, Electric Piano Rhodes).
+[V] Dual Audio Routing: Suara laptop internal dan output MIDI hardware eksternal dapat aktif bersamaan.
+
+--------------------------------------------------------------------------------
+4. PERMAINAN RITME & PEMBELAJARAN PIANO KLASIK (FALLING NOTES / SYNTHESIA STYLE)
+--------------------------------------------------------------------------------
+[V] Interactive Piano Keyboard: Render tuts piano putih dan hitam interaktif dengan efek highlight saat ditekan atau disentuh balok lagu.
+[V] Falling Note Track Engine: Balok nada jatuh dari atas layar secara presisi mengikuti durasi dan timeline file MIDI lagu klasik (Beethoven - Für Elise).
+[V] Left & Right Hand Separation: Pembedaan visual warna balok untuk melodi tangan kanan (Cyan) vs iringan tangan kiri (Amber/Gold), serta filter latihan tangan [H].
+[V] Practice Modes:
+    - [V] "Wait for Me" Mode: Balok otomatis berhenti di garis target dan menunggu pemain menekan tuts yang benar sebelum musik lanjut.
+    - [V] "Strict Rhythm" Mode: Musik berjalan otomatis sesuai tempo dengan feedback akurasi (PERFECT! / GREAT!) dan combo streak.
+[V] Laptop Keyboard Keybinding: Pemain dapat langsung memainkan piano menggunakan tuts keyboard komputer (Z-M & Q-U).
+
+--------------------------------------------------------------------------------
+5. MASKOT TANAMAN INTERAKTIF (SUNFLOWER COMPANION)
+--------------------------------------------------------------------------------
+[V] Cute Sunflower Character Rendering: Karakter bunga matahari lucu dengan pipi merona, mata berbinar, kelopak keemasan, dan batang hijau fleksibel.
+[V] Smooth Pitch Tracking Animation: Meliuk halus ke kiri (nada rendah/bass) atau condong ke kanan (nada tinggi/treble).
+[V] Velocity & Dynamic Reaction: Melompat manis (bounce) saat nada ditekan dengan kuat.
+[V] Feedback Expression & Particles: Menghasilkan percikan partikel bintang/kilau saat pemain menekan nada dengan tepat.
+
+--------------------------------------------------------------------------------
+6. VISUAL & AESTHETICS (EYE-CANDY FX)
+--------------------------------------------------------------------------------
+[V] Dark Elegant Modern Theme: Tampilan latar midnight navy bertema modern dengan kontras tinggi.
+[V] Hit Glowing Line & Highlight: Garis target berpendar neon cyan di atas tuts piano.

@@ -1,63 +1,47 @@
 import os
 import sys
-import threading
 import pygame
 
-# Pastikan direktori proyek (lokasi main.py) ada di sys.path agar paket
-# `src` tetap dapat diimpor saat aplikasi dijalankan langsung.
-if __package__ in (None, ""):
-    sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+# Pastikan direktori root masuk ke sys.path
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+if BASE_DIR not in sys.path:
+    sys.path.insert(0, BASE_DIR)
 
-from src.gui import select_midi_config
-from src.midi_handler import active_notes, midi_listener, midi_player, notes_lock, request_stop
+from src.utils.constants import SCREEN_WIDTH, SCREEN_HEIGHT, FPS
+from src.scenes.main_menu import MainMenuScene
+from src.scenes.game_scene import GameScene
+from src.scenes.visualizer_scene import VisualizerScene
+from src.scenes.settings_scene import SettingsScene
 
 
 def main():
     pygame.init()
-    width, height = 1000, 600
-    screen = pygame.display.set_mode((width, height))
-    pygame.display.set_caption("Visualizer & Controller Piano MIDI")
+    pygame.font.init()
+
+    screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
+    pygame.display.set_caption("Piano Master Classic & Visualizer")
     clock = pygame.time.Clock()
 
-    # 1. Ambil input pilihan GUI
-    chosen_input, chosen_output, midi_file, chosen_vol, chosen_velo = select_midi_config(screen, clock, width, height)
+    current_scene_name = "main_menu"
 
-    # 2. Thread Input Manual
-    if chosen_input:
-        in_thread = threading.Thread(target=midi_listener, args=(chosen_input, width, height), daemon=True)
-        in_thread.start()
-
-    # 3. Thread Player
-    if chosen_output and midi_file:
-        out_thread = threading.Thread(
-            target=midi_player,
-            args=(midi_file, chosen_output, chosen_vol, chosen_velo, width, height),
-            daemon=True
-        )
-        out_thread.start()
-
-    # 4. Main Visualizer Loop
-    bg_color = (15, 15, 20)
-    running = True
-    while running:
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT:
-                request_stop()
-                running = False
-
-        screen.fill(bg_color)
-
-        with notes_lock:
-            for pitch, note in list(active_notes.items()):
-                note.update()
-                note.draw(screen)
-                if note.alpha <= 0:
-                    del active_notes[pitch]
-
-        pygame.display.flip()
-        clock.tick(60)
+    while current_scene_name != "quit":
+        if current_scene_name == "main_menu":
+            scene = MainMenuScene(screen, clock)
+            current_scene_name = scene.run()
+        elif current_scene_name == "game":
+            scene = GameScene(screen, clock)
+            current_scene_name = scene.run()
+        elif current_scene_name == "visualizer":
+            scene = VisualizerScene(screen, clock)
+            current_scene_name = scene.run()
+        elif current_scene_name == "settings":
+            scene = SettingsScene(screen, clock)
+            current_scene_name = scene.run()
+        else:
+            break
 
     pygame.quit()
+    sys.exit(0)
 
 
 if __name__ == "__main__":
