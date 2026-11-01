@@ -4,7 +4,7 @@ import threading
 import colorsys
 
 # ---------------------------------------------------------
-# 1. SETUP & KELAS VISUAL NOT (DENGAN WARNA GRADASI HSV)
+# 1. SETUP & KELAS VISUAL NOT (OPTIMASI TUKANG TINDIH & OUTLINE)
 # ---------------------------------------------------------
 MIN_PITCH = 21
 MAX_PITCH = 108
@@ -15,30 +15,26 @@ class VisualNote:
         self.pitch = pitch
         self.velocity = velocity
         
-        # Konversi pitch ke nama not (misal: C4)
         octave = (pitch // 12) - 1
         self.name = f"{NOTE_NAMES[pitch % 12]}{octave}"
         
-        # Hitung posisi X & Y berdasarkan pitch
         clamped_pitch = max(MIN_PITCH, min(pitch, MAX_PITCH))
         normalized = (clamped_pitch - MIN_PITCH) / (MAX_PITCH - MIN_PITCH)
         
         self.x = int(60 + normalized * (width - 120))
         self.y = int((height - 120) * (1 - normalized)) + 60
         
-        # -------------------------------------------------
-        # KALKULASI WARNA GRADASI (HSV -> RGB)
-        # Pitch terendah (0.0)  -> Merah / Oranye (Hue ~0.0)
-        # Pitch pertengahan      -> Hijau / Biru  (Hue ~0.3 - 0.6)
-        # Pitch tertinggi (1.0) -> Ungu / Magenta (Hue ~0.8)
-        # -------------------------------------------------
-        hue = normalized * 0.8  # Rentang 0.0 sampai 0.8 agar spektrum warna tidak kembali ke merah awal
-        r, g, b = colorsys.hsv_to_rgb(hue, 0.9, 1.0)  # Saturation 90%, Brightness 100%
+        # Gradasi Warna HSV -> RGB
+        hue = normalized * 0.8
+        r, g, b = colorsys.hsv_to_rgb(hue, 0.9, 1.0)
         self.color = (int(r * 255), int(g * 255), int(b * 255))
         
-        # Ukuran font berdasarkan velocity (1 - 127)
-        MIN_FONT_SIZE = 18
-        MAX_FONT_SIZE = 72
+        # -------------------------------------------------
+        # OPTIMASI UKURAN FONT: RENTANG DIPERKECHIL (16px - 36px)
+        # Agar tidak saling menutupi not di sebelahnya
+        # -------------------------------------------------
+        MIN_FONT_SIZE = 16
+        MAX_FONT_SIZE = 36
         velo_normalized = max(1, min(velocity, 127)) / 127.0
         self.font_size = int(MIN_FONT_SIZE + velo_normalized * (MAX_FONT_SIZE - MIN_FONT_SIZE))
         
@@ -61,16 +57,26 @@ class VisualNote:
                 self.alpha = 0
 
     def draw(self, surface):
-        # Render teks menggunakan warna RGB gradasi yang sudah dihitung
+        # Render outline (hitam) di 4 arah agar teks utama terpisah jelas saat bertumpukan
+        outline_surface = self.font.render(self.name, True, (0, 0, 0))
         text_surface = self.font.render(self.name, True, self.color)
         
-        # Surface sementara untuk transparansi (alpha)
-        temp_surface = pygame.Surface(text_surface.get_size(), pygame.SRCALPHA)
-        temp_surface.blit(text_surface, (0, 0))
-        temp_surface.set_alpha(self.alpha)
+        w, h = text_surface.get_size()
+        # Buat surface gabungan dengan padding 4px untuk outline
+        combined_surface = pygame.Surface((w + 4, h + 4), pygame.SRCALPHA)
         
-        rect = temp_surface.get_rect(center=(self.x, self.y))
-        surface.blit(temp_surface, rect)
+        # Gambar outline hitam di sekeliling
+        for dx, dy in [(-2,0), (2,0), (0,-2), (0,2), (-1,-1), (1,1), (-1,1), (1,-1)]:
+            combined_surface.blit(outline_surface, (dx + 2, dy + 2))
+            
+        # Gambar teks utama berwarna di tengah
+        combined_surface.blit(text_surface, (2, 2))
+        
+        # Terapkan transparansi (alpha) untuk animasi memudar
+        combined_surface.set_alpha(self.alpha)
+        
+        rect = combined_surface.get_rect(center=(self.x, self.y))
+        surface.blit(combined_surface, rect)
 
 
 # ---------------------------------------------------------
@@ -112,7 +118,7 @@ thread.start()
 # ---------------------------------------------------------
 pygame.init()
 screen = pygame.display.set_mode((WIDTH, HEIGHT))
-pygame.display.set_caption("Visualizer Not Piano (Gradasi Warna HSV)")
+pygame.display.set_caption("Visualizer Not Piano (Optimasi Overlap & Outline)")
 
 BG_COLOR = (15, 15, 20)
 clock = pygame.time.Clock()
