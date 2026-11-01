@@ -1,28 +1,27 @@
+import os
 import threading
 import mido
 import pygame
 from src.visual_note import VisualNote
 
-# Variabel global untuk state not dan kontrol thread
 active_notes = {}
 notes_lock = threading.Lock()
 stop_thread = False
 
-
 def request_stop():
-    """Meminta worker thread MIDI berhenti dengan rapi."""
+    """Meminta worker thread MIDI berhenti."""
     global stop_thread
     stop_thread = True
 
-
 def midi_listener(port_name: str, width: int, height: int):
-    """Worker thread untuk mendengarkan event MIDI dari port yang dipilih."""
+    """Mendengarkan event masukan MIDI dari keyboard/piano fisik."""
     global stop_thread
+    if not port_name:
+        return
     try:
-        print(f"Membuka port MIDI: {port_name}")
+        print(f"Membuka MIDI Input: {port_name}")
         with mido.open_input(port_name) as inport:
             while not stop_thread:
-                # Menggunakan poll() agar thread dapat dihentikan dengan rapi saat window ditutup
                 for msg in inport.iter_pending():
                     if msg.type == 'note_on' and msg.velocity > 0:
                         with notes_lock:
@@ -33,4 +32,49 @@ def midi_listener(port_name: str, width: int, height: int):
                                 active_notes[msg.note].release()
                 pygame.time.wait(1)
     except Exception as e:
-        print(f"Error MIDI: {e}")
+        print(f"Error MIDI Input: {e}")
+
+def midi_player(midi_file_path: str, output_port_name: str, volume: int, width: int, height: int):
+    """Membaca berkas MIDI dan mengirimkan sinyal kontrol volume beserta not ke piano elektrik."""
+    global stop_thread
+    if not midi_file_path or not os.path.isfile(midi_file_path) or not output_port_name:
+        print("MIDI Player Batal: File atau Port Output tidak valid.")
+        return
+
+    try:
+        print(f"Memuat file MIDI: {midi_file_path}")
+        mid = mido.MidiFile(midi_file_path)
+        print(f"Membuka MIDI Output: {output_port_name} (Volume: {volume})")
+        
+        vol_factor = volume / 127.0  # Skala rasio volume 0.0 - 1.0
+
+        with mido.open_output(output_port_name) as outport:
+            # Kirim perintah Volume MIDI standar (Control Change #7) ke seluruh kanal 0-15
+            for channel in range(16):
+                vol_msg = mido.Message('control_change', channel=channel, control=7, value=volume)
+                outport.send(vol_msg)
+
+            for msg in mid.play():
+                if stop_thread:
+                    break
+                
+                # Salin pesan agar pesan asli tidak rusak
+                adjusted_msg = msg.copy()
+
+                # Skala volume velocity jika berupa pesan note_on
+                if adjusted_msg.type == 'note_on' and adjusted_msg.velocity > 0:
+                    adjusted_msg.velocity = int(adjusted_msg.velocity * vol_factor)
+                
+                # Kirim perintah ke piano elektrik
+                outport.send(adjusted_msg)
+
+                # Update visualizer
+                if adjusted_msg.type == 'note_on' and adjusted_msg.velocity > 0:
+                    with notes_lock:
+                        active_notes[adjusted_msg.note] = VisualNote(adjusted_msg.note, adjusted_msg.velocity, width, height)
+                elif adjusted_msg.type == 'note_off' or (adjusted_msg.type == 'note_on' and adjusted_msg.velocity == 0):
+                    with notes_lock:
+                        if adjusted_msg.note in active_notes:
+                            active_notes[adjusted_msg.note].release()
+    except Exception as e:
+        print(f"Error MIDI Player / Output: {e}")
