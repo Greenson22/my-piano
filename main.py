@@ -1,59 +1,108 @@
 import pygame
 import mido
 import threading
+import time
 
 # ---------------------------------------------------------
-# 1. SETUP MIDO (MEMBACA PIANO DI BACKGROUND THREAD)
+# 1. SETUP & KONSTRUKTOR KELAS VISUAL NOT
 # ---------------------------------------------------------
-current_note_info = None  # Menyimpan data not terakhir yang ditekan
+# Rentang pitch standar piano 88 tuts (A0 = 21, C8 = 108)
+MIN_PITCH = 21
+MAX_PITCH = 108
+NOTE_NAMES = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B']
 
-def midi_listener():
-    global current_note_info
+class VisualNote:
+    def __init__(self, pitch, velocity, width, height):
+        self.pitch = pitch
+        self.velocity = velocity
+        
+        # Konversi pitch ke nama not (misal: C4)
+        octave = (pitch // 12) - 1
+        self.name = f"{NOTE_NAMES[pitch % 12]}{octave}"
+        
+        # Hitung posisi awal berdasarkan pitch
+        clamped_pitch = max(MIN_PITCH, min(pitch, MAX_PITCH))
+        normalized = (clamped_pitch - MIN_PITCH) / (MAX_PITCH - MIN_PITCH)
+        
+        # X: Pitch rendah di kiri, pitch tinggi di kanan
+        self.x = int(60 + normalized * (width - 120))
+        # Y: Pitch tinggi di atas, pitch rendah di bawah
+        self.y = int((height - 120) * (1 - normalized)) + 60
+        
+        # Status animasi & transparansi (Alpha: 255 = pekat, 0 = transparan)
+        self.is_releasing = False
+        self.alpha = 255
+        self.fall_speed = 3  # Kecepatan jatuh saat dilepas
+        self.fade_speed = 8  # Kecepatan memudar
+
+    def release(self):
+        self.is_releasing = True
+
+    def update(self):
+        # Jika tombol sudah dilepas, jalankan animasi jatuh & memudar
+        if self.is_releasing:
+            self.y += self.fall_speed
+            self.alpha -= self.fade_speed
+            if self.alpha < 0:
+                self.alpha = 0
+
+    def draw(self, surface, font):
+        # Render teks ke Surface sementara agar bisa menerapkan efek transparansi (Alpha)
+        text_surface = font.render(self.name, True, (0, 255, 200))
+        temp_surface = pygame.Surface(text_surface.get_size(), pygame.SRCALPHA)
+        temp_surface.blit(text_surface, (0, 0))
+        temp_surface.set_alpha(self.alpha)
+        
+        rect = temp_surface.get_rect(center=(self.x, self.y))
+        surface.blit(temp_surface, rect)
+
+
+# ---------------------------------------------------------
+# 2. SETUP MIDO (MULTI-NOTE THREADING)
+# ---------------------------------------------------------
+# Dictionary untuk menyimpan not yang sedang aktif/ditekan: {pitch: VisualNote}
+active_notes = {}
+notes_lock = threading.Lock()
+
+def midi_listener(width, height):
     try:
         inputs = mido.get_input_names()
         if not inputs:
-            print("Tidak ada perangkat MIDI terdeteksi!")
+            print("Perangkat MIDI tidak ditemukan!")
             return
-        
-        # Mengambil perangkat MIDI pertama yang terhubung
+            
         input_name = inputs[0]
         print(f"Terhubung ke MIDI: {input_name}")
         
-        # Konversi angka MIDI note ke nama not musik (C, C#, D, dst.)
-        NOTE_NAMES = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B']
-
         with mido.open_input(input_name) as inport:
             for msg in inport:
                 if msg.type == 'note_on' and msg.velocity > 0:
-                    note_number = msg.note
-                    octave = (note_number // 12) - 1
-                    note_name = f"{NOTE_NAMES[note_number % 12]}{octave}"
-                    
-                    # Simpan not & nomor pitch untuk dihitung posisinya di layar
-                    current_note_info = {
-                        "name": note_name,
-                        "pitch": note_number
-                    }
+                    with notes_lock:
+                        # Tambahkan not baru saat tuts ditekan
+                        active_notes[msg.note] = VisualNote(msg.note, msg.velocity, width, height)
+                elif msg.type == 'note_off' or (msg.type == 'note_on' and msg.velocity == 0):
+                    with notes_lock:
+                        # Tandai not untuk mulai animasi lepas/jatuh saat tuts dilepas
+                        if msg.note in active_notes:
+                            active_notes[msg.note].release()
     except Exception as e:
         print(f"Error MIDI: {e}")
 
-# Jalankan pendengar MIDI di thread terpisah agar tidak mengunci Pygame
-thread = threading.Thread(target=midi_listener, daemon=True)
+WIDTH, HEIGHT = 1000, 600
+
+thread = threading.Thread(target=midi_listener, args=(WIDTH, HEIGHT), daemon=True)
 thread.start()
 
 
 # ---------------------------------------------------------
-# 2. SETUP PYGAME (DISPLAY & UI)
+# 3. SETUP PYGAME & RENDER LOOP
 # ---------------------------------------------------------
 pygame.init()
-WIDTH, HEIGHT = 800, 600
 screen = pygame.display.set_mode((WIDTH, HEIGHT))
-pygame.display.set_caption("Visualizer Not Piano")
+pygame.display.set_caption("Visualizer Multi-Note & Animasi Piano")
 
-FONT = pygame.font.SysFont("Arial", 36, bold=True)
-BG_COLOR = (20, 20, 20)      # Background hitam/gelap
-TEXT_COLOR = (0, 255, 200)   # Warna teks hijau toska
-
+FONT = pygame.font.SysFont("Arial", 28, bold=True)
+BG_COLOR = (15, 15, 20)
 clock = pygame.time.Clock()
 running = True
 
@@ -62,31 +111,17 @@ while running:
         if event.type == pygame.QUIT:
             running = False
 
-    # Bersihkan layar (UI Kosong)
     screen.fill(BG_COLOR)
 
-    # Jika ada not piano yang ditekan
-    if current_note_info is not None:
-        pitch = current_note_info["pitch"]
-        text_surface = FONT.render(current_note_info["name"], True, TEXT_COLOR)
-        
-        # Standar piano 88-key berada di rentang pitch MIDI 21 (A0) hingga 108 (C8)
-        MIN_PITCH = 21
-        MAX_PITCH = 108
-        
-        # Batasi pitch agar tidak keluar dari skala rentang
-        clamped_pitch = max(MIN_PITCH, min(pitch, MAX_PITCH))
-        
-        # Normalisasi ke rentang 0.0 sampai 1.0
-        normalized = (clamped_pitch - MIN_PITCH) / (MAX_PITCH - MIN_PITCH)
-        
-        # Hitung posisi Y: Pitch tinggi -> Y kecil (Atas), Pitch rendah -> Y besar (Bawah)
-        # Diberi margin 50px dari atas dan bawah agar teks tidak terpotong
-        pos_y = int((HEIGHT - 100) * (1 - normalized)) + 50
-        pos_x = WIDTH // 2  # Posisikan horizontal di tengah layar
-        
-        text_rect = text_surface.get_rect(center=(pos_x, pos_y))
-        screen.blit(text_surface, text_rect)
+    with notes_lock:
+        # Iterasi copy dari list nilai agar aman saat menghapus elemen yang sudah hilang
+        for pitch, note in list(active_notes.items()):
+            note.update()
+            note.draw(screen, FONT)
+            
+            # Hapus not dari memori jika animasi fade out sudah selesai (alpha <= 0)
+            if note.alpha <= 0:
+                del active_notes[pitch]
 
     pygame.display.flip()
     clock.tick(60)
