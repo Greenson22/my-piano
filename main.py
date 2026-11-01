@@ -1,9 +1,10 @@
 import pygame
 import mido
 import threading
+import colorsys
 
 # ---------------------------------------------------------
-# 1. SETUP & KELAS VISUAL NOT (DENGAN SKALA UKURAN VELOCITY)
+# 1. SETUP & KELAS VISUAL NOT (DENGAN WARNA GRADASI HSV)
 # ---------------------------------------------------------
 MIN_PITCH = 21
 MAX_PITCH = 108
@@ -26,16 +27,21 @@ class VisualNote:
         self.y = int((height - 120) * (1 - normalized)) + 60
         
         # -------------------------------------------------
-        # KALKULASI UKURAN TEKS BERDASARKAN VELOCITY (1 - 127)
-        # Pitch lembut (velocity rendah) -> Ukuran kecil (~18px)
-        # Pitch keras (velocity tinggi)  -> Ukuran besar (~72px)
+        # KALKULASI WARNA GRADASI (HSV -> RGB)
+        # Pitch terendah (0.0)  -> Merah / Oranye (Hue ~0.0)
+        # Pitch pertengahan      -> Hijau / Biru  (Hue ~0.3 - 0.6)
+        # Pitch tertinggi (1.0) -> Ungu / Magenta (Hue ~0.8)
         # -------------------------------------------------
+        hue = normalized * 0.8  # Rentang 0.0 sampai 0.8 agar spektrum warna tidak kembali ke merah awal
+        r, g, b = colorsys.hsv_to_rgb(hue, 0.9, 1.0)  # Saturation 90%, Brightness 100%
+        self.color = (int(r * 255), int(g * 255), int(b * 255))
+        
+        # Ukuran font berdasarkan velocity (1 - 127)
         MIN_FONT_SIZE = 18
         MAX_FONT_SIZE = 72
         velo_normalized = max(1, min(velocity, 127)) / 127.0
         self.font_size = int(MIN_FONT_SIZE + velo_normalized * (MAX_FONT_SIZE - MIN_FONT_SIZE))
         
-        # Buat objek Font khusus sesuai ukuran velocity not ini
         self.font = pygame.font.SysFont("Arial", self.font_size, bold=True)
         
         # Status animasi
@@ -55,10 +61,10 @@ class VisualNote:
                 self.alpha = 0
 
     def draw(self, surface):
-        # Render teks menggunakan ukuran font yang sudah disesuaikan dengan velocity
-        text_surface = self.font.render(self.name, True, (0, 255, 200))
+        # Render teks menggunakan warna RGB gradasi yang sudah dihitung
+        text_surface = self.font.render(self.name, True, self.color)
         
-        # Buat surface sementara untuk menangani alpha (transparansi)
+        # Surface sementara untuk transparansi (alpha)
         temp_surface = pygame.Surface(text_surface.get_size(), pygame.SRCALPHA)
         temp_surface.blit(text_surface, (0, 0))
         temp_surface.set_alpha(self.alpha)
@@ -87,7 +93,6 @@ def midi_listener(width, height):
             for msg in inport:
                 if msg.type == 'note_on' and msg.velocity > 0:
                     with notes_lock:
-                        # Kirimkan msg.velocity ke konstruktor VisualNote
                         active_notes[msg.note] = VisualNote(msg.note, msg.velocity, width, height)
                 elif msg.type == 'note_off' or (msg.type == 'note_on' and msg.velocity == 0):
                     with notes_lock:
@@ -107,7 +112,7 @@ thread.start()
 # ---------------------------------------------------------
 pygame.init()
 screen = pygame.display.set_mode((WIDTH, HEIGHT))
-pygame.display.set_caption("Visualizer Not Piano (Dynamic Velocity Size)")
+pygame.display.set_caption("Visualizer Not Piano (Gradasi Warna HSV)")
 
 BG_COLOR = (15, 15, 20)
 clock = pygame.time.Clock()
@@ -123,7 +128,7 @@ while running:
     with notes_lock:
         for pitch, note in list(active_notes.items()):
             note.update()
-            note.draw(screen)  # Tidak perlu lagi melempar FONT global
+            note.draw(screen)
             
             if note.alpha <= 0:
                 del active_notes[pitch]
