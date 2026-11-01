@@ -24,10 +24,12 @@ def select_midi_config(screen: pygame.Surface, clock: pygame.time.Clock, width: 
     selected_file = midi_files[0] if midi_files else None
     
     volume = 100 
-    velocity_mult = 1.0  # Pengali Velocity (0.5x - 2.0x)
     
+    # State untuk Input Teks Velocity
+    velocity_text = "1.0"
+    typing_velocity = False
+
     drag_vol = False
-    drag_velo = False
     config_done = False
 
     while not config_done:
@@ -68,8 +70,8 @@ def select_midi_config(screen: pygame.Surface, clock: pygame.time.Clock, width: 
                 screen.blit(font_item.render(f"{port[:25]}...", True, (255, 255, 255)), (btn_rect.x + 10, btn_rect.y + 5))
                 out_buttons.append((btn_rect, port))
 
-        # --- 3. Slider Volume & Velocity ---
-        # Master Volume
+        # --- 3. Control Volume & Input Velocity ---
+        # Master Volume Slider
         screen.blit(font_sub.render(f"3. Master Volume: {volume} / 127", True, (0, 255, 200)), (40, 175))
         track_vol = pygame.Rect(40, 200, 400, 8)
         pygame.draw.rect(screen, (60, 70, 90), track_vol, border_radius=4)
@@ -77,25 +79,27 @@ def select_midi_config(screen: pygame.Surface, clock: pygame.time.Clock, width: 
         pygame.draw.rect(screen, (0, 255, 200), fill_vol, border_radius=4)
         pygame.draw.circle(screen, (255, 255, 255), (40 + fill_vol.width, 204), 10)
 
-        # Velocity Multiplier
-        screen.blit(font_sub.render(f"4. Sensitivitas Velocity: {velocity_mult:.1f}x", True, (0, 255, 200)), (480, 175))
-        track_velo = pygame.Rect(480, 200, 400, 8)
-        pygame.draw.rect(screen, (60, 70, 90), track_velo, border_radius=4)
-        velo_ratio = (velocity_mult - 0.5) / 1.5  # Rentang 0.5x s/d 2.0x
-        fill_velo = pygame.Rect(480, 200, int(velo_ratio * 400), 8)
-        pygame.draw.rect(screen, (0, 255, 200), fill_velo, border_radius=4)
-        pygame.draw.circle(screen, (255, 255, 255), (480 + fill_velo.width, 204), 10)
+        # Input Teks Velocity Multiplier
+        screen.blit(font_sub.render("4. Ketik Multiplier Velocity (cth: 0.5 - 2.0):", True, (0, 255, 200)), (480, 175))
+        velo_box = pygame.Rect(480, 198, 150, 32)
+        box_bg = (60, 80, 110) if typing_velocity else (40, 45, 60)
+        border_col = (0, 255, 200) if typing_velocity else (100, 100, 120)
+        pygame.draw.rect(screen, box_bg, velo_box, border_radius=6)
+        pygame.draw.rect(screen, border_col, velo_box, width=2, border_radius=6)
+
+        velo_surf = font_item.render(velocity_text, True, (255, 255, 255))
+        screen.blit(velo_surf, (velo_box.x + 10, velo_box.y + 6))
 
         # --- 4. File MIDI ---
-        screen.blit(font_sub.render("5. Pilih File MIDI (Folder ./midi/):", True, (0, 255, 200)), (40, 225))
+        screen.blit(font_sub.render("5. Pilih File MIDI (Folder ./midi/):", True, (0, 255, 200)), (40, 240))
         file_buttons = []
         if not midi_files:
-            screen.blit(font_item.render(f"- Tidak ada berkas di {MIDI_DIR} -", True, (255, 100, 100)), (50, 255))
+            screen.blit(font_item.render(f"- Tidak ada berkas di {MIDI_DIR} -", True, (255, 100, 100)), (50, 270))
         else:
             for i, filename in enumerate(midi_files[:6]):
                 col = i % 2
                 row = i // 2
-                btn_rect = pygame.Rect(40 + col * 440, 255 + row * 38, 420, 32)
+                btn_rect = pygame.Rect(40 + col * 440, 270 + row * 38, 420, 32)
                 is_sel = (filename == selected_file)
                 color = (0, 180, 140) if is_sel else ((60, 70, 90) if btn_rect.collidepoint(mouse_pos) else (40, 45, 60))
                 pygame.draw.rect(screen, color, btn_rect, border_radius=6)
@@ -122,10 +126,11 @@ def select_midi_config(screen: pygame.Surface, clock: pygame.time.Clock, width: 
                 exit()
 
             elif event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
+                # Klik Kotak Input Velocity
+                typing_velocity = velo_box.collidepoint(event.pos)
+
                 if track_vol.collidepoint(event.pos):
                     drag_vol = True
-                elif track_velo.collidepoint(event.pos):
-                    drag_velo = True
 
                 for btn_rect, port in in_buttons:
                     if btn_rect.collidepoint(event.pos): selected_input = port
@@ -144,18 +149,30 @@ def select_midi_config(screen: pygame.Surface, clock: pygame.time.Clock, width: 
 
             elif event.type == pygame.MOUSEBUTTONUP and event.button == 1:
                 drag_vol = False
-                drag_velo = False
 
-            elif event.type == pygame.MOUSEMOTION:
-                if drag_vol:
-                    rel_x = max(0, min(event.pos[0] - 40, 400))
-                    volume = int((rel_x / 400) * 127)
-                elif drag_velo:
-                    rel_x = max(0, min(event.pos[0] - 480, 400))
-                    velocity_mult = round(0.5 + (rel_x / 400) * 1.5, 2)
+            elif event.type == pygame.MOUSEMOTION and drag_vol:
+                rel_x = max(0, min(event.pos[0] - 40, 400))
+                volume = int((rel_x / 400) * 127)
+
+            elif event.type == pygame.KEYDOWN and typing_velocity:
+                if event.key == pygame.K_RETURN:
+                    typing_velocity = False
+                elif event.key == pygame.K_BACKSPACE:
+                    velocity_text = velocity_text[:-1]
+                else:
+                    # Hanya mengizinkan input angka dan titik desimal
+                    if event.unicode.isdigit() or event.unicode == '.':
+                        if len(velocity_text) < 5:
+                            velocity_text += event.unicode
 
         pygame.display.flip()
         clock.tick(60)
+
+    # Konversi string input velocity ke tipe float (fallback ke 1.0 jika input kosong/invalid)
+    try:
+        velocity_mult = float(velocity_text)
+    except ValueError:
+        velocity_mult = 1.0
 
     full_midi_path = os.path.join(MIDI_DIR, selected_file) if selected_file else None
     return selected_input, selected_output, full_midi_path, volume, velocity_mult
