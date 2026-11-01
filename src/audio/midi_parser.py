@@ -6,8 +6,8 @@ from typing import List
 class MidiNoteEvent:
     pitch: int
     velocity: int
-    start_time: float   # Dalam detik
-    duration: float     # Dalam detik
+    start_time: float   # Dalam detik riil
+    duration: float     # Dalam detik riil
     hand: str           # 'right' (melodi/treble) atau 'left' (bass/iringan)
     hit: bool = False   # Status apakah sudah ditekan oleh pemain
 
@@ -15,56 +15,71 @@ class MidiNoteEvent:
 def parse_midi_file(filepath: str) -> List[MidiNoteEvent]:
     """
     Membaca file MIDI dan mengonversinya menjadi daftar MidiNoteEvent
-    yang terurut berdasarkan waktu mulai (start_time).
-    Secara cerdas membedakan tangan kanan (treble) dan tangan kiri (bass).
+    yang terurut berdasarkan waktu mulai riil (detik).
     """
     mid = mido.MidiFile(filepath)
     events: List[MidiNoteEvent] = []
 
-    # Pendekatan 1: Jika file memiliki multi-track (umum pada file klasik piano)
-    # Track 1 biasanya melodi tangan kanan, Track 2 biasanya tangan kiri.
-    has_multiple_musical_tracks = len([t for t in mid.tracks if any(m.type == 'note_on' for m in t)]) > 1
+    # Iterasi pesan terurut waktu riil menggunakan mid.play() / generator delta time terkonversi
+    # mido mengonversi ticks ke detik saat melakukan iterasi terhadap mid (real-time delta)
+    current_time = 0.0
+    active_notes = {}  # pitch -> (start_time, velocity)
+    all_raw_notes = []
 
-    track_notes = []
-    for track_idx, track in enumerate(mid.tracks):
-        current_time = 0.0
-        active_notes = {} # pitch -> (start_time, velocity)
+    for msg in mid:
+        current_time += msg.time
 
-        for msg in track:
-            current_time += msg.time
+        if msg.type == 'note_on' and msg.velocity > 0:
+            # Jika ada nada sama yang belum di-off-kan, selesaikan dulu
+            if msg.note in active_notes:
+                start_t, vel = active_notes.pop(msg.note)
+                all_raw_notes.append({
+                    'pitch': msg.note,
+                    'velocity': vel,
+                    'start_time': start_t,
+                    'duration': max(0.12, current_time - start_t)
+                })
+            active_notes[msg.note] = (current_time, msg.velocity)
 
-            if msg.type == 'note_on' and msg.velocity > 0:
-                active_notes[msg.note] = (current_time, msg.velocity)
-            elif (msg.type == 'note_off') or (msg.type == 'note_on' and msg.velocity == 0):
-                if msg.note in active_notes:
-                    start_t, vel = active_notes.pop(msg.note)
-                    duration = max(0.1, current_time - start_t)
-                    track_notes.append({
-                        'pitch': msg.note,
-                        'velocity': vel,
-                        'start_time': start_t,
-                        'duration': duration,
-                        'track_idx': track_idx
-                    })
+        elif (msg.type == 'note_off') or (msg.type == 'note_on' and msg.velocity == 0):
+            if msg.note in active_notes:
+                start_t, vel = active_notes.pop(msg.note)
+                all_raw_notes.append({
+                    'pitch': msg.note,
+                    'velocity': vel,
+                    'start_time': start_t,
+                    'duration': max(0.12, current_time - start_t)
+                })
 
-    # Urutkan berdasarkan waktu mulai
-    track_notes.sort(key=lambda x: x['start_time'])
+    # Tangani sisa note yang belum ada note_off
+    for pitch, (start_t, vel) in active_notes.items():
+        all_raw_notes.append({
+            'pitch': pitch,
+            'velocity': vel,
+            'start_time': start_t,
+            'duration': 0.3
+        })
 
-    # Tentukan pemisahan tangan:
-    # 1. Jika ada track terpisah, track dengan rata-rata pitch lebih tinggi = right hand
-    # 2. Jika single track, split berdasarkan Middle C (pitch 60)
-    for note in track_notes:
-        pitch = note['pitch']
-        if pitch >= 60:
-            hand = 'right'
-        else:
-            hand = 'left'
+    # Urutkan berdasarkan waktu mulai riil
+    all_raw_notes.sort(key=lambda x: x['start_time'])
 
+    # Normalisasi waktu mulai: jika nada pertama mulai setelah jeda panjang, beri lead time 1.5 detik
+    if all_raw_notes:
+        first_time = all_raw_notes[0]['start_time']
+        lead_in = 1.8
+        offset = max(0.0, first_time - lead_in)
+        for n in all_raw_notes:
+            n['start_time'] = max(0.0, n['start_time'] - offset)
+
+    for n in all_raw_notes:
+        pitch = n['pitch']
+        # Tangan kanan jika pitch >= 60 (Middle C), selain itu tangan kiri
+        hand = 'right' if pitch >= 60 else 'left'
         events.append(MidiNoteEvent(
             pitch=pitch,
-            velocity=note['velocity'],
-            start_time=note['start_time'],
-            duration=note['duration'],
+            velocity=n['velocity'],
+            start_time=n['start_time'],
+            duration=n['duration'],
             hand=hand
         ))
 

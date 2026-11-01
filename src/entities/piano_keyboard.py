@@ -36,15 +36,14 @@ class PianoKeyboard:
         self.font = pygame.font.SysFont("Segoe UI", 11, bold=True)
 
     def _calculate_rects(self):
-        curr_x = self.rect.x
+        curr_x = float(self.rect.x)
         for p in self.white_pitches:
-            rect = pygame.Rect(curr_x, self.rect.y, int(self.white_key_width), self.rect.height)
+            rect = pygame.Rect(int(curr_x), self.rect.y, int(self.white_key_width) + 1, self.rect.height)
             self.white_rects[p] = rect
             curr_x += self.white_key_width
 
-        # Posisi tuts hitam bertengger di antara tuts putih
+        # Posisi tuts hitam bertengger tepat di antara tuts putih
         for p in self.black_pitches:
-            # Cari tuts putih sebelumnya
             prev_white = p - 1
             while prev_white >= self.min_pitch and is_black_key(prev_white):
                 prev_white -= 1
@@ -59,13 +58,18 @@ class PianoKeyboard:
     def get_pitch_x(self, pitch: int) -> float:
         """Mengembalikan koordinat x tengah untuk suatu nada pitch."""
         if pitch in self.black_rects:
-            return self.black_rects[pitch].centerx
+            return float(self.black_rects[pitch].centerx)
         elif pitch in self.white_rects:
-            return self.white_rects[pitch].centerx
+            return float(self.white_rects[pitch].centerx)
         else:
-            # Fallback interpolasi jika pitch di luar rentang tuts
+            # Cari nada terdekat yang ada di tuts
+            clamped = max(self.min_pitch, min(self.max_pitch, pitch))
+            if clamped in self.white_rects:
+                return float(self.white_rects[clamped].centerx)
+            elif clamped in self.black_rects:
+                return float(self.black_rects[clamped].centerx)
             ratio = (pitch - self.min_pitch) / max(1, (self.max_pitch - self.min_pitch))
-            return self.rect.x + ratio * self.rect.width
+            return float(self.rect.x + ratio * self.rect.width)
 
     def press_key(self, pitch: int):
         self.pressed_keys.add(pitch)

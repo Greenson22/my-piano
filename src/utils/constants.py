@@ -11,9 +11,10 @@ FPS = 60
 MIN_PITCH = 21
 MAX_PITCH = 108
 
-# Rentang Nada Tampilan Keyboard Default (C2=36 sampai C7=96, atau A0-C8)
-KEYBOARD_MIN_PITCH = 28  # E1
-KEYBOARD_MAX_PITCH = 103 # G7
+# Rentang Nada Tampilan Keyboard Default (C2=36 sampai C7=96)
+# 5 Oktaf penuh (36 s/d 96) agar tuts terlihat pas, presisi, dan proporsional
+KEYBOARD_MIN_PITCH = 36  # C2
+KEYBOARD_MAX_PITCH = 96  # C7
 
 NOTE_NAMES = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B']
 

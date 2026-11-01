@@ -20,7 +20,7 @@ class MainMenuScene:
     def run(self) -> str:
         buttons = [
             {
-                "id": "game",
+                "id": "song_select",
                 "title": "1. Belajar Piano Klasik (Game)",
                 "desc": "Falling notes, Wait Mode, latihan tangan kanan/kiri & maskot bunga",
                 "color": COLOR_ACCENT_BLUE
@@ -98,7 +98,7 @@ class MainMenuScene:
                             return b["id"]
                 elif event.type == pygame.KEYDOWN:
                     if event.key == pygame.K_1:
-                        return "game"
+                        return "song_select"
                     elif event.key == pygame.K_2:
                         return "visualizer"
                     elif event.key == pygame.K_3:
