@@ -1,12 +1,10 @@
 import pygame
 import mido
 import threading
-import time
 
 # ---------------------------------------------------------
-# 1. SETUP & KONSTRUKTOR KELAS VISUAL NOT
+# 1. SETUP & KELAS VISUAL NOT (DENGAN SKALA UKURAN VELOCITY)
 # ---------------------------------------------------------
-# Rentang pitch standar piano 88 tuts (A0 = 21, C8 = 108)
 MIN_PITCH = 21
 MAX_PITCH = 108
 NOTE_NAMES = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B']
@@ -20,35 +18,47 @@ class VisualNote:
         octave = (pitch // 12) - 1
         self.name = f"{NOTE_NAMES[pitch % 12]}{octave}"
         
-        # Hitung posisi awal berdasarkan pitch
+        # Hitung posisi X & Y berdasarkan pitch
         clamped_pitch = max(MIN_PITCH, min(pitch, MAX_PITCH))
         normalized = (clamped_pitch - MIN_PITCH) / (MAX_PITCH - MIN_PITCH)
         
-        # X: Pitch rendah di kiri, pitch tinggi di kanan
         self.x = int(60 + normalized * (width - 120))
-        # Y: Pitch tinggi di atas, pitch rendah di bawah
         self.y = int((height - 120) * (1 - normalized)) + 60
         
-        # Status animasi & transparansi (Alpha: 255 = pekat, 0 = transparan)
+        # -------------------------------------------------
+        # KALKULASI UKURAN TEKS BERDASARKAN VELOCITY (1 - 127)
+        # Pitch lembut (velocity rendah) -> Ukuran kecil (~18px)
+        # Pitch keras (velocity tinggi)  -> Ukuran besar (~72px)
+        # -------------------------------------------------
+        MIN_FONT_SIZE = 18
+        MAX_FONT_SIZE = 72
+        velo_normalized = max(1, min(velocity, 127)) / 127.0
+        self.font_size = int(MIN_FONT_SIZE + velo_normalized * (MAX_FONT_SIZE - MIN_FONT_SIZE))
+        
+        # Buat objek Font khusus sesuai ukuran velocity not ini
+        self.font = pygame.font.SysFont("Arial", self.font_size, bold=True)
+        
+        # Status animasi
         self.is_releasing = False
         self.alpha = 255
-        self.fall_speed = 3  # Kecepatan jatuh saat dilepas
-        self.fade_speed = 8  # Kecepatan memudar
+        self.fall_speed = 3
+        self.fade_speed = 8
 
     def release(self):
         self.is_releasing = True
 
     def update(self):
-        # Jika tombol sudah dilepas, jalankan animasi jatuh & memudar
         if self.is_releasing:
             self.y += self.fall_speed
             self.alpha -= self.fade_speed
             if self.alpha < 0:
                 self.alpha = 0
 
-    def draw(self, surface, font):
-        # Render teks ke Surface sementara agar bisa menerapkan efek transparansi (Alpha)
-        text_surface = font.render(self.name, True, (0, 255, 200))
+    def draw(self, surface):
+        # Render teks menggunakan ukuran font yang sudah disesuaikan dengan velocity
+        text_surface = self.font.render(self.name, True, (0, 255, 200))
+        
+        # Buat surface sementara untuk menangani alpha (transparansi)
         temp_surface = pygame.Surface(text_surface.get_size(), pygame.SRCALPHA)
         temp_surface.blit(text_surface, (0, 0))
         temp_surface.set_alpha(self.alpha)
@@ -60,7 +70,6 @@ class VisualNote:
 # ---------------------------------------------------------
 # 2. SETUP MIDO (MULTI-NOTE THREADING)
 # ---------------------------------------------------------
-# Dictionary untuk menyimpan not yang sedang aktif/ditekan: {pitch: VisualNote}
 active_notes = {}
 notes_lock = threading.Lock()
 
@@ -78,11 +87,10 @@ def midi_listener(width, height):
             for msg in inport:
                 if msg.type == 'note_on' and msg.velocity > 0:
                     with notes_lock:
-                        # Tambahkan not baru saat tuts ditekan
+                        # Kirimkan msg.velocity ke konstruktor VisualNote
                         active_notes[msg.note] = VisualNote(msg.note, msg.velocity, width, height)
                 elif msg.type == 'note_off' or (msg.type == 'note_on' and msg.velocity == 0):
                     with notes_lock:
-                        # Tandai not untuk mulai animasi lepas/jatuh saat tuts dilepas
                         if msg.note in active_notes:
                             active_notes[msg.note].release()
     except Exception as e:
@@ -95,13 +103,12 @@ thread.start()
 
 
 # ---------------------------------------------------------
-# 3. SETUP PYGAME & RENDER LOOP
+# 3. RENDER LOOP PYGAME
 # ---------------------------------------------------------
 pygame.init()
 screen = pygame.display.set_mode((WIDTH, HEIGHT))
-pygame.display.set_caption("Visualizer Multi-Note & Animasi Piano")
+pygame.display.set_caption("Visualizer Not Piano (Dynamic Velocity Size)")
 
-FONT = pygame.font.SysFont("Arial", 28, bold=True)
 BG_COLOR = (15, 15, 20)
 clock = pygame.time.Clock()
 running = True
@@ -114,12 +121,10 @@ while running:
     screen.fill(BG_COLOR)
 
     with notes_lock:
-        # Iterasi copy dari list nilai agar aman saat menghapus elemen yang sudah hilang
         for pitch, note in list(active_notes.items()):
             note.update()
-            note.draw(screen, FONT)
+            note.draw(screen)  # Tidak perlu lagi melempar FONT global
             
-            # Hapus not dari memori jika animasi fade out sudah selesai (alpha <= 0)
             if note.alpha <= 0:
                 del active_notes[pitch]
 
