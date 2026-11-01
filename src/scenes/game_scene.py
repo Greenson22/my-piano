@@ -186,17 +186,17 @@ class GameScene:
             pygame.draw.line(self.screen, (0, 210, 255), (40, int(self.hit_line_y)), (self.width - 200, int(self.hit_line_y)), 3)
             pygame.draw.line(self.screen, (100, 240, 255), (40, int(self.hit_line_y) - 1), (self.width - 200, int(self.hit_line_y) - 1), 1)
 
-        # 2. Gambar Balok-Balok Nada yang Jatuh (dibatasi di bawah HUD)
-        hud_bottom = 75
-        self.screen.set_clip(pygame.Rect(0, hud_bottom, self.width, self.height - hud_bottom))
-        for fn in self.falling_notes:
-            if self.hand_filter != "all" and fn.event.hand != self.hand_filter:
-                continue
-            # Jangan gambar yang sudah lewat jauh atau sudah ditekan
-            if fn.event.hit and (self.current_time > fn.event.start_time + fn.event.duration):
-                continue
-            fn.draw(self.screen, self.current_time, self.pixels_per_sec, self.hit_line_y)
-        self.screen.set_clip(None)
+            # 2. Gambar Balok-Balok Nada yang Jatuh (dibatasi di bawah HUD)
+            hud_bottom = 75
+            self.screen.set_clip(pygame.Rect(0, hud_bottom, self.width, self.height - hud_bottom))
+            for fn in self.falling_notes:
+                if self.hand_filter != "all" and fn.event.hand != self.hand_filter:
+                    continue
+                # Jangan gambar yang sudah lewat jauh atau sudah ditekan
+                if fn.event.hit and (self.current_time > fn.event.start_time + fn.event.duration):
+                    continue
+                fn.draw(self.screen, self.current_time, self.pixels_per_sec, self.hit_line_y)
+            self.screen.set_clip(None)
 
             # 3. Gambar Tuts Piano
             self.keyboard.draw(self.screen)
