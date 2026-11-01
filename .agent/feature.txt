@@ -35,11 +35,13 @@
 [V] Interactive Piano Keyboard: Render tuts piano putih dan hitam interaktif dengan efek highlight saat ditekan atau disentuh balok lagu.
 [V] Falling Note Track Engine: Balok nada jatuh dari atas layar secara presisi mengikuti durasi dan timeline file MIDI lagu klasik (Beethoven - Für Elise).
 [V] Left & Right Hand Separation: Pembedaan visual warna balok untuk melodi tangan kanan (Cyan) vs iringan tangan kiri (Amber/Gold), serta filter latihan tangan [H].
-[V] Chunking Practice Mode (A-B Looping):
+[V] Chunking Practice Mode (A-B Looping & Persistent Manager):
     - Fitur isolasi birama/bagian lagu tertentu untuk dilatih berulang-ulang hingga lancar.
-    - Toggle ON/OFF dengan tombol [C].
-    - Penetapan titik awal [A] dan titik akhir [B] secara fleksibel.
-    - Penghitung loop pengulangan (Loop Counter) dan integrasi reaksi gembira maskot bunga matahari saat menyelesaikan repetisi.
+    - Penyimpanan persisten (chunks.json): data chunking tersimpan rapi untuk setiap lagu.
+    - Lompat langsung (Direct Jump) ke bagian chunk tertentu via tombol [N] (next), [P] (prev), atau menu [M].
+    - Pengubahan nama chunk (Rename Chunking) langsung di dalam antarmuka.
+    - Penambahan chunk kustom (+ Buat dari posisi saat ini).
+    - Reset Chunking dengan konfirmasi modal aman ([Y] / [N]).
     - Visual penanda rentang kuning emas (A-B range) pada timeline seek bar.
 [V] Practice Modes:
     - [V] "Wait for Me" Mode: Balok otomatis berhenti di garis target dan menunggu pemain menekan tuts yang benar sebelum musik lanjut.

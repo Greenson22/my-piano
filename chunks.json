@@ -1,0 +1,184 @@
+{
+  "Beethoven - Fur Elise.mid": [
+    {
+      "id": 1,
+      "name": "Bagian 1 (0s - 8s)",
+      "start": 0.0,
+      "end": 8.0
+    },
+    {
+      "id": 2,
+      "name": "Bagian 2 (8s - 16s)",
+      "start": 8.0,
+      "end": 16.0
+    },
+    {
+      "id": 3,
+      "name": "Bagian 3 (16s - 24s)",
+      "start": 16.0,
+      "end": 24.0
+    },
+    {
+      "id": 4,
+      "name": "Bagian 4 (24s - 32s)",
+      "start": 24.0,
+      "end": 32.0
+    },
+    {
+      "id": 5,
+      "name": "Bagian 5 (32s - 40s)",
+      "start": 32.0,
+      "end": 40.0
+    },
+    {
+      "id": 6,
+      "name": "Bagian 6 (40s - 48s)",
+      "start": 40.0,
+      "end": 48.0
+    },
+    {
+      "id": 7,
+      "name": "Bagian 7 (48s - 56s)",
+      "start": 48.0,
+      "end": 56.0
+    },
+    {
+      "id": 8,
+      "name": "Bagian 8 (56s - 64s)",
+      "start": 56.0,
+      "end": 64.0
+    },
+    {
+      "id": 9,
+      "name": "Bagian 9 (64s - 72s)",
+      "start": 64.0,
+      "end": 72.0
+    },
+    {
+      "id": 10,
+      "name": "Bagian 10 (72s - 80s)",
+      "start": 72.0,
+      "end": 80.0
+    },
+    {
+      "id": 11,
+      "name": "Bagian 11 (80s - 88s)",
+      "start": 80.0,
+      "end": 88.0
+    },
+    {
+      "id": 12,
+      "name": "Bagian 12 (88s - 96s)",
+      "start": 88.0,
+      "end": 96.0
+    },
+    {
+      "id": 13,
+      "name": "Bagian 13 (96s - 104s)",
+      "start": 96.0,
+      "end": 104.0
+    },
+    {
+      "id": 14,
+      "name": "Bagian 14 (104s - 112s)",
+      "start": 104.0,
+      "end": 112.0
+    },
+    {
+      "id": 15,
+      "name": "Bagian 15 (112s - 120s)",
+      "start": 112.0,
+      "end": 120.0
+    },
+    {
+      "id": 16,
+      "name": "Bagian 16 (120s - 128s)",
+      "start": 120.0,
+      "end": 128.0
+    },
+    {
+      "id": 17,
+      "name": "Bagian 17 (128s - 136s)",
+      "start": 128.0,
+      "end": 136.0
+    },
+    {
+      "id": 18,
+      "name": "Bagian 18 (136s - 144s)",
+      "start": 136.0,
+      "end": 144.0
+    },
+    {
+      "id": 19,
+      "name": "Bagian 19 (144s - 152s)",
+      "start": 144.0,
+      "end": 152.0
+    },
+    {
+      "id": 20,
+      "name": "Bagian 20 (152s - 160s)",
+      "start": 152.0,
+      "end": 160.0
+    },
+    {
+      "id": 21,
+      "name": "Bagian 21 (160s - 168s)",
+      "start": 160.0,
+      "end": 168.0
+    },
+    {
+      "id": 22,
+      "name": "Bagian 22 (168s - 176s)",
+      "start": 168.0,
+      "end": 176.0
+    },
+    {
+      "id": 23,
+      "name": "Bagian 23 (176s - 184s)",
+      "start": 176.0,
+      "end": 184.0
+    },
+    {
+      "id": 24,
+      "name": "Bagian 24 (184s - 192s)",
+      "start": 184.0,
+      "end": 192.0
+    },
+    {
+      "id": 25,
+      "name": "Bagian 25 (192s - 200s)",
+      "start": 192.0,
+      "end": 200.0
+    },
+    {
+      "id": 26,
+      "name": "Bagian 26 (200s - 208s)",
+      "start": 200.0,
+      "end": 208.0
+    },
+    {
+      "id": 27,
+      "name": "Bagian 27 (208s - 216s)",
+      "start": 208.0,
+      "end": 216.0
+    },
+    {
+      "id": 28,
+      "name": "Bagian 28 (216s - 224s)",
+      "start": 216.0,
+      "end": 224.0
+    },
+    {
+      "id": 29,
+      "name": "Bagian 29 (224s - 232s)",
+      "start": 224.0,
+      "end": 232.0
+    },
+    {
+      "id": 30,
+      "name": "Bagian 30 (232s - 232s)",
+      "start": 232.0,
+      "end": 232.3
+    }
+  ]
+}
