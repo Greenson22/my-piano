@@ -16,19 +16,19 @@ def main():
     pygame.display.set_caption("Visualizer & Controller Piano MIDI")
     clock = pygame.time.Clock()
 
-    # 1. Pilih Port, File, dan Volume via GUI
-    chosen_input, chosen_output, midi_file, chosen_volume = select_midi_config(screen, clock, width, height)
+    # 1. Ambil input pilihan GUI
+    chosen_input, chosen_output, midi_file, chosen_vol, chosen_velo = select_midi_config(screen, clock, width, height)
 
     # 2. Thread Input Manual
     if chosen_input:
         in_thread = threading.Thread(target=midi_listener, args=(chosen_input, width, height), daemon=True)
         in_thread.start()
 
-    # 3. Thread Player dengan Kontrol Volume
+    # 3. Thread Player
     if chosen_output and midi_file:
         out_thread = threading.Thread(
             target=midi_player, 
-            args=(midi_file, chosen_output, chosen_volume, width, height), 
+            args=(midi_file, chosen_output, chosen_vol, chosen_velo, width, height), 
             daemon=True
         )
         out_thread.start()

@@ -9,17 +9,14 @@ notes_lock = threading.Lock()
 stop_thread = False
 
 def request_stop():
-    """Meminta worker thread MIDI berhenti."""
     global stop_thread
     stop_thread = True
 
 def midi_listener(port_name: str, width: int, height: int):
-    """Mendengarkan event masukan MIDI dari keyboard/piano fisik."""
     global stop_thread
     if not port_name:
         return
     try:
-        print(f"Membuka MIDI Input: {port_name}")
         with mido.open_input(port_name) as inport:
             while not stop_thread:
                 for msg in inport.iter_pending():
@@ -34,22 +31,17 @@ def midi_listener(port_name: str, width: int, height: int):
     except Exception as e:
         print(f"Error MIDI Input: {e}")
 
-def midi_player(midi_file_path: str, output_port_name: str, volume: int, width: int, height: int):
-    """Membaca berkas MIDI dan mengirimkan sinyal kontrol volume beserta not ke piano elektrik."""
+def midi_player(midi_file_path: str, output_port_name: str, volume: int, velocity_mult: float, width: int, height: int):
     global stop_thread
     if not midi_file_path or not os.path.isfile(midi_file_path) or not output_port_name:
-        print("MIDI Player Batal: File atau Port Output tidak valid.")
         return
 
     try:
-        print(f"Memuat file MIDI: {midi_file_path}")
         mid = mido.MidiFile(midi_file_path)
-        print(f"Membuka MIDI Output: {output_port_name} (Volume: {volume})")
-        
-        vol_factor = volume / 127.0  # Skala rasio volume 0.0 - 1.0
+        vol_factor = volume / 127.0
 
         with mido.open_output(output_port_name) as outport:
-            # Kirim perintah Volume MIDI standar (Control Change #7) ke seluruh kanal 0-15
+            # Set Master Volume (CC 7)
             for channel in range(16):
                 vol_msg = mido.Message('control_change', channel=channel, control=7, value=volume)
                 outport.send(vol_msg)
@@ -57,18 +49,19 @@ def midi_player(midi_file_path: str, output_port_name: str, volume: int, width: 
             for msg in mid.play():
                 if stop_thread:
                     break
-                
-                # Salin pesan agar pesan asli tidak rusak
+
                 adjusted_msg = msg.copy()
 
-                # Skala volume velocity jika berupa pesan note_on
                 if adjusted_msg.type == 'note_on' and adjusted_msg.velocity > 0:
-                    adjusted_msg.velocity = int(adjusted_msg.velocity * vol_factor)
-                
-                # Kirim perintah ke piano elektrik
+                    # Kalikan velocity asli lagu dengan multiplier sensitivitas
+                    scaled_velo = int(adjusted_msg.velocity * velocity_mult)
+                    
+                    # Gabungkan dengan master volume
+                    final_velocity = int(scaled_velo * vol_factor)
+                    adjusted_msg.velocity = max(1, min(final_velocity, 127))
+
                 outport.send(adjusted_msg)
 
-                # Update visualizer
                 if adjusted_msg.type == 'note_on' and adjusted_msg.velocity > 0:
                     with notes_lock:
                         active_notes[adjusted_msg.note] = VisualNote(adjusted_msg.note, adjusted_msg.velocity, width, height)
