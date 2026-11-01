@@ -1,6 +1,14 @@
+import os
+import sys
 import threading
 
 import pygame
+
+# Izinkan aplikasi dijalankan langsung (`python src/main.py`) maupun
+# sebagai modul (`python -m src.main`) dengan memastikan root proyek
+# berada di sys.path sehingga paket `src` dapat diimpor.
+if __package__ in (None, ""):
+    sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from src.gui import select_midi_port
 from src.midi_handler import active_notes, midi_listener, notes_lock, request_stop
