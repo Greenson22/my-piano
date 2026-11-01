@@ -49,6 +49,9 @@ class GameScene:
         # Timeline diletakkan di bawah HUD atas agar tampilan layar tuts bersih dan lega
         self.timeline_rect = pygame.Rect(40, 75, self.width - 80, 8)
 
+        # Waktu & Progress
+        self.current_time = 0.0
+        self.is_paused = False
         self.is_dragging_timeline = False
         self.score = 0
         self.combo = 0
