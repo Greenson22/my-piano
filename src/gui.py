@@ -21,7 +21,8 @@ def select_midi_config(screen: pygame.Surface, clock: pygame.time.Clock, width: 
 
     selected_input = input_ports[0] if input_ports else None
     selected_output = output_ports[0] if output_ports else None
-    selected_file = midi_files[0] if midi_files else None
+    # Default: tanpa file MIDI, sehingga bisa langsung main manual
+    selected_file = None
     
     volume = 100 
     
@@ -93,20 +94,27 @@ def select_midi_config(screen: pygame.Surface, clock: pygame.time.Clock, width: 
         # --- 4. File MIDI ---
         screen.blit(font_sub.render("5. Pilih File MIDI (Folder ./midi/):", True, (0, 255, 200)), (40, 240))
         file_buttons = []
-        if not midi_files:
-            screen.blit(font_item.render(f"- Tidak ada berkas di {MIDI_DIR} -", True, (255, 100, 100)), (50, 270))
-        else:
-            for i, filename in enumerate(midi_files[:6]):
-                col = i % 2
-                row = i // 2
-                btn_rect = pygame.Rect(40 + col * 440, 270 + row * 38, 420, 32)
-                is_sel = (filename == selected_file)
-                color = (0, 180, 140) if is_sel else ((60, 70, 90) if btn_rect.collidepoint(mouse_pos) else (40, 45, 60))
-                pygame.draw.rect(screen, color, btn_rect, border_radius=6)
-                pygame.draw.rect(screen, (0, 255, 200) if is_sel else (100, 100, 120), btn_rect, width=2, border_radius=6)
+
+        # Opsi pertama (None) = main manual tanpa memutar file MIDI
+        all_options = [None] + midi_files[:5]
+
+        for i, filename in enumerate(all_options):
+            col = i % 2
+            row = i // 2
+            btn_rect = pygame.Rect(40 + col * 440, 270 + row * 38, 420, 32)
+            is_sel = (filename == selected_file)
+            color = (0, 180, 140) if is_sel else ((60, 70, 90) if btn_rect.collidepoint(mouse_pos) else (40, 45, 60))
+            pygame.draw.rect(screen, color, btn_rect, border_radius=6)
+            pygame.draw.rect(screen, (0, 255, 200) if is_sel else (100, 100, 120), btn_rect, width=2, border_radius=6)
+
+            # Teks khusus jika pilihan adalah None (Main Sendiri)
+            if filename is None:
+                label = "- Tanpa File MIDI (Main Sendiri) -"
+            else:
                 label = filename if len(filename) <= 38 else f"{filename[:35]}..."
-                screen.blit(font_item.render(label, True, (255, 255, 255)), (btn_rect.x + 10, btn_rect.y + 6))
-                file_buttons.append((btn_rect, filename))
+
+            screen.blit(font_item.render(label, True, (255, 255, 255)), (btn_rect.x + 10, btn_rect.y + 6))
+            file_buttons.append((btn_rect, filename))
 
         # --- Tombol Refresh & Mulai ---
         refresh_rect = pygame.Rect(width // 2 - 210, height - 60, 180, 40)
