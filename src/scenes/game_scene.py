@@ -57,6 +57,12 @@ class GameScene:
         self.midi_path = midi_path
         self.all_events = parse_midi_file(midi_path) if midi_path else []
 
+        # Hitung durasi total lagu
+        self.total_duration = 0.0
+        if self.all_events:
+            self.total_duration = max(ev.start_time + ev.duration for ev in self.all_events) + 2.0
+        self.total_duration = max(10.0, self.total_duration)
+
         # Buat Falling Note entities
         self.falling_notes = []
         for ev in self.all_events:
@@ -73,18 +79,33 @@ class GameScene:
         # Waktu & Progress
         self.current_time = 0.0
         self.is_paused = False
+        self.is_dragging_timeline = False
         self.score = 0
         self.combo = 0
         self.accuracy_text = ""
         self.accuracy_timer = 0.0
 
+        # Rect untuk Timeline Bar (Seek bar di atas tuts piano)
+        self.timeline_rect = pygame.Rect(40, int(self.hit_line_y) - 22, self.width - 240, 10)
+
         # Font
         self.font_hud = pygame.font.SysFont("Segoe UI", 16, bold=True)
         self.font_score = pygame.font.SysFont("Segoe UI", 22, bold=True)
         self.font_big = pygame.font.SysFont("Segoe UI", 28, bold=True)
+        self.font_time = pygame.font.SysFont("Segoe UI", 12, bold=True)
 
         # Register callback MIDI hardware jika ada
         midi_manager.register_callback(self.on_midi_input)
+
+    def seek_to_time(self, target_time: float):
+        """Memindahkan playback ke detik tertentu dan mereset status hit not balok."""
+        self.current_time = max(0.0, min(self.total_duration, target_time))
+        for fn in self.falling_notes:
+            # Jika not berada setelah waktu sekarang, jadikan belum ditekan lagi
+            if fn.event.start_time >= self.current_time - 0.05:
+                fn.event.hit = False
+            else:
+                fn.event.hit = True
 
     def on_midi_input(self, event_type: str, pitch: int, velocity: int):
         if event_type == 'note_on' and velocity > 0:
@@ -140,6 +161,12 @@ class GameScene:
                         return "main_menu"
                     elif event.key == pygame.K_SPACE:
                         self.is_paused = not self.is_paused
+                    elif event.key == pygame.K_LEFT:
+                        # Geser mundur 3 detik
+                        self.seek_to_time(self.current_time - 3.0)
+                    elif event.key == pygame.K_RIGHT:
+                        # Geser maju 3 detik
+                        self.seek_to_time(self.current_time + 3.0)
                     elif event.key == pygame.K_TAB:
                         # Ganti Mode Latihan (Wait vs Rhythm)
                         self.mode = "rhythm" if self.mode == "wait" else "wait"
@@ -152,6 +179,21 @@ class GameScene:
                 elif event.type == pygame.KEYUP:
                     if event.key in KEYBOARD_MAP:
                         self.handle_release(KEYBOARD_MAP[event.key])
+                elif event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
+                    # Deteksi klik di timeline bar (area klik diperlebar untuk kemudahan)
+                    click_rect = pygame.Rect(
+                        self.timeline_rect.x, self.timeline_rect.y - 8,
+                        self.timeline_rect.width, self.timeline_rect.height + 16
+                    )
+                    if click_rect.collidepoint(event.pos):
+                        self.is_dragging_timeline = True
+                        rel_x = max(0.0, min(1.0, (event.pos[0] - self.timeline_rect.x) / self.timeline_rect.width))
+                        self.seek_to_time(rel_x * self.total_duration)
+                elif event.type == pygame.MOUSEBUTTONUP and event.button == 1:
+                    self.is_dragging_timeline = False
+                elif event.type == pygame.MOUSEMOTION and self.is_dragging_timeline:
+                    rel_x = max(0.0, min(1.0, (event.pos[0] - self.timeline_rect.x) / self.timeline_rect.width))
+                    self.seek_to_time(rel_x * self.total_duration)
 
             # Update Logika Waktu
             if not self.is_paused:
@@ -185,6 +227,28 @@ class GameScene:
             # 1. Garis Target (Hit Line) yang Bercahaya
             pygame.draw.line(self.screen, (0, 210, 255), (40, int(self.hit_line_y)), (self.width - 200, int(self.hit_line_y)), 3)
             pygame.draw.line(self.screen, (100, 240, 255), (40, int(self.hit_line_y) - 1), (self.width - 200, int(self.hit_line_y) - 1), 1)
+
+            # 1b. Render Timeline Bar Interaktif (Seek Bar)
+            progress = max(0.0, min(1.0, self.current_time / self.total_duration))
+            # Background track
+            pygame.draw.rect(self.screen, (30, 34, 50), self.timeline_rect, border_radius=5)
+            # Progress bar terisi
+            filled_w = int(self.timeline_rect.width * progress)
+            if filled_w > 0:
+                fill_rect = pygame.Rect(self.timeline_rect.x, self.timeline_rect.y, filled_w, self.timeline_rect.height)
+                pygame.draw.rect(self.screen, COLOR_ACCENT_BLUE, fill_rect, border_radius=5)
+            # Handle bulat slider
+            handle_x = int(self.timeline_rect.x + filled_w)
+            handle_y = int(self.timeline_rect.centery)
+            pygame.draw.circle(self.screen, (255, 255, 255), (handle_x, handle_y), 7)
+            pygame.draw.circle(self.screen, COLOR_ACCENT_BLUE, (handle_x, handle_y), 4)
+
+            # Format teks menit:detik
+            cur_m, cur_s = divmod(int(self.current_time), 60)
+            tot_m, tot_s = divmod(int(self.total_duration), 60)
+            time_str = f"{cur_m:02d}:{cur_s:02d} / {tot_m:02d}:{tot_s:02d} (Geser Timeline / [←][→])"
+            txt_t = self.font_time.render(time_str, True, COLOR_TEXT_MUTED)
+            self.screen.blit(txt_t, (self.timeline_rect.right - txt_t.get_width(), self.timeline_rect.y - 18))
 
             # 2. Gambar Balok-Balok Nada yang Jatuh (dibatasi di bawah HUD)
             hud_bottom = 75

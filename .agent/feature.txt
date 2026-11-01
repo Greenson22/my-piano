@@ -35,6 +35,7 @@
 [V] Interactive Piano Keyboard: Render tuts piano putih dan hitam interaktif dengan efek highlight saat ditekan atau disentuh balok lagu.
 [V] Falling Note Track Engine: Balok nada jatuh dari atas layar secara presisi mengikuti durasi dan timeline file MIDI lagu klasik (Beethoven - Für Elise).
 [V] Left & Right Hand Separation: Pembedaan visual warna balok untuk melodi tangan kanan (Cyan) vs iringan tangan kiri (Amber/Gold), serta filter latihan tangan [H].
+[V] Timeline Seek Bar: Bilah timeline interaktif di atas tuts piano (dapat diklik/digeser dengan mouse atau tombol panah [←][→] untuk maju/mundur lagu ke detik tertentu).
 [V] Practice Modes:
     - [V] "Wait for Me" Mode: Balok otomatis berhenti di garis target dan menunggu pemain menekan tuts yang benar sebelum musik lanjut.
     - [V] "Strict Rhythm" Mode: Musik berjalan otomatis sesuai tempo dengan feedback akurasi (PERFECT! / GREAT!) dan combo streak.
