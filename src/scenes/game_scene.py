@@ -90,12 +90,13 @@ class GameScene:
         # Pengaturan Game & Kecepatan
         self.mode = "wait"        # "wait" atau "rhythm"
         self.hand_filter = "all"   # "all", "right", "left"
-        self.speed = 1.0           # 0.5 sampai 1.2
+        self.speed = 1.0           # 0.5, 0.75, 1.0, 1.25
         self.pixels_per_sec = 140.0
 
         # Status Chunking
         self.chunk_enabled = False
         self.chunk_repeat_count = 0
+        self.chunk_scroll_offset = 0  # Halaman/offset scroll daftar chunking
         self._sync_chunk_bounds()
 
         # Modal/Overlay Dialog State
@@ -235,6 +236,20 @@ class GameScene:
                             return "main_menu"
                     elif event.key == pygame.K_SPACE:
                         self.is_paused = not self.is_paused
+                    elif event.key == pygame.K_UP and self.show_chunk_menu:
+                        # Scroll list chunk ke atas
+                        self.chunk_scroll_offset = max(0, self.chunk_scroll_offset - 1)
+                    elif event.key == pygame.K_DOWN and self.show_chunk_menu:
+                        # Scroll list chunk ke bawah
+                        max_scroll = max(0, len(self.chunks) - 6)
+                        self.chunk_scroll_offset = min(max_scroll, self.chunk_scroll_offset + 1)
+                    elif event.key == pygame.K_s:
+                        # Ganti Kecepatan Tempo (Speed Slider 50% -> 75% -> 100% -> 125%)
+                        speeds = [0.5, 0.75, 1.0, 1.25]
+                        cur_idx = speeds.index(self.speed) if self.speed in speeds else 2
+                        self.speed = speeds[(cur_idx + 1) % len(speeds)]
+                        self.accuracy_text = f"TEMPO: {int(self.speed * 100)}%"
+                        self.accuracy_timer = 1.0
                     elif event.key == pygame.K_m:
                         # Buka / Tutup Daftar Chunking Manager Modal
                         self.show_chunk_menu = not self.show_chunk_menu
@@ -322,8 +337,9 @@ class GameScene:
                                 continue
 
                             # Cek klik item chunk untuk jump / rename
-                            for i, ch in enumerate(self.chunks[:6]):
-                                iy = modal_y + 60 + i * 36
+                            for rel_i, ch in enumerate(self.chunks[self.chunk_scroll_offset : self.chunk_scroll_offset + 6]):
+                                i = self.chunk_scroll_offset + rel_i
+                                iy = modal_y + 60 + rel_i * 36
                                 item_rect = pygame.Rect(modal_x + 20, iy, modal_w - 110, 30)
                                 edit_rect = pygame.Rect(modal_x + modal_w - 85, iy, 65, 30)
 
@@ -351,6 +367,10 @@ class GameScene:
 
                 elif event.type == pygame.MOUSEBUTTONUP and event.button == 1:
                     self.is_dragging_timeline = False
+                elif event.type == pygame.MOUSEWHEEL and self.show_chunk_menu:
+                    # Scroll mouse wheel pada daftar chunk
+                    max_scroll = max(0, len(self.chunks) - 6)
+                    self.chunk_scroll_offset = max(0, min(max_scroll, self.chunk_scroll_offset - event.y))
                 elif event.type == pygame.MOUSEMOTION and self.is_dragging_timeline:
                     rel_x = max(0.0, min(1.0, (event.pos[0] - self.timeline_rect.x) / self.timeline_rect.width))
                     self.seek_to_time(rel_x * self.total_duration)
@@ -454,16 +474,20 @@ class GameScene:
 
             txt_score = self.font_score.render(f"Skor: {self.score}", True, COLOR_ACCENT_GOLD)
             txt_combo = self.font_score.render(f"Combo: {self.combo}x", True, COLOR_ACCENT_BLUE)
-            mode_lbl = "WAIT MODE" if self.mode == "wait" else "STRICT RHYTHM"
+            mode_lbl = "WAIT" if self.mode == "wait" else "RHYTHM"
             txt_mode = self.font_hud.render(f"Mode [TAB]: {mode_lbl}", True, COLOR_TEXT_WHITE)
 
-            hand_lbl = "KEDUA TANGAN" if self.hand_filter == "all" else ("KANAN" if self.hand_filter == "right" else "KIRI")
+            hand_lbl = "DUAL" if self.hand_filter == "all" else ("KANAN" if self.hand_filter == "right" else "KIRI")
             txt_hand = self.font_hud.render(f"Tangan [H]: {hand_lbl}", True, COLOR_ACCENT_PINK)
 
+            speed_lbl = f"{int(self.speed * 100)}%"
+            txt_spd = self.font_hud.render(f"Tempo [S]: {speed_lbl}", True, (0, 230, 118))
+
             self.screen.blit(txt_score, (55, 26))
-            self.screen.blit(txt_combo, (210, 26))
-            self.screen.blit(txt_mode, (360, 28))
-            self.screen.blit(txt_hand, (640, 28))
+            self.screen.blit(txt_combo, (185, 26))
+            self.screen.blit(txt_mode, (320, 28))
+            self.screen.blit(txt_hand, (530, 28))
+            self.screen.blit(txt_spd, (715, 28))
 
             # Tombol Kelola Chunking di HUD
             btn_chunk_rect = pygame.Rect(self.width - 240, 22, 180, 36)
@@ -520,9 +544,11 @@ class GameScene:
         self.screen.blit(t_title, (modal_x + 20, modal_y + 16))
         self.screen.blit(t_sub, (modal_x + 20, modal_y + 44))
 
-        # List Bagian Chunking
-        for i, ch in enumerate(self.chunks[:6]):
-            iy = modal_y + 70 + i * 38
+        # List Bagian Chunking dengan Pagination / Scroll
+        visible_chunks = self.chunks[self.chunk_scroll_offset : self.chunk_scroll_offset + 6]
+        for rel_i, ch in enumerate(visible_chunks):
+            i = self.chunk_scroll_offset + rel_i
+            iy = modal_y + 70 + rel_i * 38
             item_rect = pygame.Rect(modal_x + 20, iy, modal_w - 110, 32)
             edit_rect = pygame.Rect(modal_x + modal_w - 85, iy, 65, 32)
 
@@ -530,7 +556,6 @@ class GameScene:
             h_item = item_rect.collidepoint(mx, my)
             h_edit = edit_rect.collidepoint(mx, my)
 
-            # Item Box
             bg_col = (45, 50, 70) if (h_item or is_cur) else (30, 33, 46)
             border_c = (0, 210, 255) if is_cur else ((70, 75, 100) if h_item else (45, 48, 65))
             pygame.draw.rect(self.screen, bg_col, item_rect, border_radius=6)
@@ -544,6 +569,11 @@ class GameScene:
             pygame.draw.rect(self.screen, (100, 110, 140), edit_rect, width=1, border_radius=6)
             txt_ed = self.font_modal_sub.render("Ubah ✎", True, COLOR_ACCENT_BLUE)
             self.screen.blit(txt_ed, (edit_rect.centerx - txt_ed.get_width() // 2, edit_rect.centery - txt_ed.get_height() // 2))
+
+            # Indikator Scroll Bar jika lebih dari 6 chunk
+            if len(self.chunks) > 6:
+                scroll_info = self.font_modal_sub.render(f"Halaman {self.chunk_scroll_offset + 1} - {min(len(self.chunks), self.chunk_scroll_offset + 6)} dari {len(self.chunks)} (Scroll [▲][▼] / Roda Mouse)", True, (130, 140, 165))
+                self.screen.blit(scroll_info, (modal_x + 20, modal_y + modal_h - 72))
 
         # Bottom Bar: Tombol Reset, Tambah, Tutup
         btn_rst = pygame.Rect(modal_x + 20, modal_y + modal_h - 48, 140, 34)

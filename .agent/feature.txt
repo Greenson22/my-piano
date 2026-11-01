@@ -39,10 +39,12 @@
     - Fitur isolasi birama/bagian lagu tertentu untuk dilatih berulang-ulang hingga lancar.
     - Penyimpanan persisten (chunks.json): data chunking tersimpan rapi untuk setiap lagu.
     - Lompat langsung (Direct Jump) ke bagian chunk tertentu via tombol [N] (next), [P] (prev), atau menu [M].
+    - Dukungan scroll & navigasi banyak halaman chunk (Mouse Wheel & tombol panah [▲][▼]).
     - Pengubahan nama chunk (Rename Chunking) langsung di dalam antarmuka.
     - Penambahan chunk kustom (+ Buat dari posisi saat ini).
     - Reset Chunking dengan konfirmasi modal aman ([Y] / [N]).
-    - Visual penanda rentang kuning emas (A-B range) pada timeline seek bar.
+    - Kontrol Tempo Lagu [S] real-time (50%, 75%, 100%, 125%) untuk latihan bertahap.
+    - Visual penanda rentang kuning emas (A-B range) pada timeline seek bar di bawah HUD.
 [V] Practice Modes:
     - [V] "Wait for Me" Mode: Balok otomatis berhenti di garis target dan menunggu pemain menekan tuts yang benar sebelum musik lanjut.
     - [V] "Strict Rhythm" Mode: Musik berjalan otomatis sesuai tempo dengan feedback akurasi (PERFECT! / GREAT!) dan combo streak.
