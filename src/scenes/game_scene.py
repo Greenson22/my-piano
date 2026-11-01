@@ -46,6 +46,15 @@ class GameScene:
         self.keyboard = PianoKeyboard(x=40, y=kb_y, width=self.width - 240, height=kb_height)
         self.hit_line_y = float(kb_y)
 
+        # Timeline diletakkan di bawah HUD atas agar tampilan layar tuts bersih dan lega
+        self.timeline_rect = pygame.Rect(40, 75, self.width - 80, 8)
+
+        self.is_dragging_timeline = False
+        self.score = 0
+        self.combo = 0
+        self.accuracy_text = ""
+        self.accuracy_timer = 0.0
+
         # Maskot Bunga Matahari di samping kanan tuts piano
         self.mascot = MascotSunflower(x=self.width - 100, y=self.height - 110, base_radius=38)
 
@@ -91,18 +100,6 @@ class GameScene:
         self.show_confirm_reset = False
         self.renaming_chunk_idx = None
         self.rename_text = ""
-
-        # Waktu & Progress
-        self.current_time = 0.0
-        self.is_paused = False
-        self.is_dragging_timeline = False
-        self.score = 0
-        self.combo = 0
-        self.accuracy_text = ""
-        self.accuracy_timer = 0.0
-
-        # Rect untuk Timeline Bar (Seek bar di atas tuts piano)
-        self.timeline_rect = pygame.Rect(40, int(self.hit_line_y) - 22, self.width - 240, 10)
 
         # Font
         self.font_hud = pygame.font.SysFont("Segoe UI", 16, bold=True)
@@ -395,9 +392,9 @@ class GameScene:
             pygame.draw.line(self.screen, (0, 210, 255), (40, int(self.hit_line_y)), (self.width - 200, int(self.hit_line_y)), 3)
             pygame.draw.line(self.screen, (100, 240, 255), (40, int(self.hit_line_y) - 1), (self.width - 200, int(self.hit_line_y) - 1), 1)
 
-            # 1b. Render Timeline Bar Interaktif (Seek Bar)
+            # 1b. Render Timeline Bar Interaktif (Seek Bar di Bawah HUD)
             progress = max(0.0, min(1.0, self.current_time / self.total_duration))
-            pygame.draw.rect(self.screen, (30, 34, 50), self.timeline_rect, border_radius=5)
+            pygame.draw.rect(self.screen, (30, 34, 50), self.timeline_rect, border_radius=4)
 
             # Gambar highlight area A-B di timeline jika Chunking aktif
             if self.chunk_enabled:
@@ -407,31 +404,32 @@ class GameScene:
                 chunk_w = max(4.0, (cB_ratio - cA_ratio) * self.timeline_rect.width)
                 chunk_rect = pygame.Rect(int(chunk_x), self.timeline_rect.y - 2, int(chunk_w), self.timeline_rect.height + 4)
                 pygame.draw.rect(self.screen, (255, 193, 7), chunk_rect, border_radius=4)
-                pygame.draw.line(self.screen, (255, 235, 59), (int(chunk_x), self.timeline_rect.y - 6), (int(chunk_x), self.timeline_rect.bottom + 6), 2)
-                pygame.draw.line(self.screen, (255, 235, 59), (int(chunk_x + chunk_w), self.timeline_rect.y - 6), (int(chunk_x + chunk_w), self.timeline_rect.bottom + 6), 2)
+                pygame.draw.line(self.screen, (255, 235, 59), (int(chunk_x), self.timeline_rect.y - 4), (int(chunk_x), self.timeline_rect.bottom + 4), 2)
+                pygame.draw.line(self.screen, (255, 235, 59), (int(chunk_x + chunk_w), self.timeline_rect.y - 4), (int(chunk_x + chunk_w), self.timeline_rect.bottom + 4), 2)
 
             filled_w = int(self.timeline_rect.width * progress)
             if filled_w > 0:
                 fill_rect = pygame.Rect(self.timeline_rect.x, self.timeline_rect.y, filled_w, self.timeline_rect.height)
-                pygame.draw.rect(self.screen, COLOR_ACCENT_BLUE, fill_rect, border_radius=5)
+                pygame.draw.rect(self.screen, COLOR_ACCENT_BLUE, fill_rect, border_radius=4)
 
             handle_x = int(self.timeline_rect.x + filled_w)
             handle_y = int(self.timeline_rect.centery)
-            pygame.draw.circle(self.screen, (255, 255, 255), (handle_x, handle_y), 7)
-            pygame.draw.circle(self.screen, COLOR_ACCENT_BLUE, (handle_x, handle_y), 4)
+            pygame.draw.circle(self.screen, (255, 255, 255), (handle_x, handle_y), 6)
+            pygame.draw.circle(self.screen, COLOR_ACCENT_BLUE, (handle_x, handle_y), 3)
 
-            # Format teks menit:detik & info chunking aktif
+            # Format teks menit:detik & info chunking aktif di bawah timeline
             cur_m, cur_s = divmod(int(self.current_time), 60)
             tot_m, tot_s = divmod(int(self.total_duration), 60)
             c_name = self.chunks[self.active_chunk_idx]["name"] if self.chunks else "Bagian"
             chunk_status_txt = f" | CHUNK [C]: {'ON' if self.chunk_enabled else 'OFF'} ({c_name} - Loop #{self.chunk_repeat_count})"
-            time_str = f"{cur_m:02d}:{cur_s:02d} / {tot_m:02d}:{tot_s:02d}{chunk_status_txt}"
+            time_str = f"Waktu: {cur_m:02d}:{cur_s:02d} / {tot_m:02d}:{tot_s:02d}{chunk_status_txt}"
             txt_t = self.font_time.render(time_str, True, (255, 215, 0) if self.chunk_enabled else COLOR_TEXT_MUTED)
-            self.screen.blit(txt_t, (self.timeline_rect.right - txt_t.get_width(), self.timeline_rect.y - 18))
+            self.screen.blit(txt_t, (self.timeline_rect.x, self.timeline_rect.bottom + 4))
 
-            # 2. Gambar Balok-Balok Nada yang Jatuh (dibatasi di bawah HUD)
-            hud_bottom = 75
-            self.screen.set_clip(pygame.Rect(0, hud_bottom, self.width, self.height - hud_bottom))
+            # 2. Gambar Balok-Balok Nada yang Jatuh (dibatasi di bawah bar waktu dan di atas tuts piano)
+            fall_top = 100
+            fall_h = int(self.hit_line_y) - fall_top
+            self.screen.set_clip(pygame.Rect(0, fall_top, self.width, fall_h))
             for fn in self.falling_notes:
                 if self.hand_filter != "all" and fn.event.hand != self.hand_filter:
                     continue
